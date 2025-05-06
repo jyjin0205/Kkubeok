@@ -13,11 +13,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.kkubeok.ui.theme.KkubeokTheme
 
+import com.example.kkubeok.BottomNavigationBar
+
 @Composable
-fun AlarmScreen() {
-    Scaffold { paddingValues ->
+fun AlarmScreen(navController: NavHostController?=null) {
+
+    Scaffold(
+        bottomBar={
+            navController?.let{
+                BottomNavigationBar(navController=it)
+            }
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -49,7 +49,7 @@ fun KkubeokMain(){
         composable("Login") { LoginScreen(navController) }
         composable("Data Collecting") { DataCollecting(navController) }
         composable("Detecting Start"){DetectingScreen(navController = navController)}
-        composable("alarm"){AlarmScreen()}
+        composable("alarm"){AlarmScreen(navController)}
         composable("Home"){ HomeScreen(navController)}
     }
 }
