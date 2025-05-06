@@ -40,14 +40,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KkubeokMain(){
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "main"){
-        composable("main") { MainScreen(navController) }
+    NavHost(navController = navController, startDestination = "login"){
+        composable("login") { LoginScreen(navController) }
         composable("detecting") {DetectingScreen()}
     }
 }
 
 @Composable
-fun MainScreen(navController: NavHostController) {
+fun LoginScreen(navController: NavHostController) {
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -110,10 +110,10 @@ fun MainScreen(navController: NavHostController) {
 
 @Preview(showBackground = true)
 @Composable
-fun MainScreenPreview() {
+fun LoginScreenPreview() {
     val dummyNavController = rememberNavController()
     KkubeokTheme {
-        MainScreen(navController = dummyNavController)
+        LoginScreen(navController = dummyNavController)
     }
 }
 
