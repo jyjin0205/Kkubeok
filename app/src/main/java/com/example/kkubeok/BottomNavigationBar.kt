@@ -23,12 +23,12 @@ fun BottomNavigationBar(navController: NavHostController){
         NavigationBarItem(
             icon={ Icon(Icons.Default.Timeline, contentDescription="Timeline") },
             selected=false,
-            onClick={/* TODO: Go to Timeline*/}
+            onClick={navController.navigate("Timeline")}
         )
         NavigationBarItem(
             icon={ Icon(Icons.Default.Add, contentDescription="Detecting") },
             selected=false,
-            onClick={/* TODO: Go to Detecting*/}
+            onClick={navController.navigate("Detecting")}
         )
         NavigationBarItem(
             icon={ Icon(Icons.Default.BarChart, contentDescription="Analysis") },
@@ -39,7 +39,7 @@ fun BottomNavigationBar(navController: NavHostController){
             icon={ Icon(Icons.Default.Alarm, contentDescription="Alarm") },
             selected=false,
             onClick={
-                navController.navigate("alarm")
+                navController.navigate("Alarm")
             }
         )
     }

@@ -27,6 +27,7 @@ import com.example.kkubeok.screen.DataCollecting
 import com.example.kkubeok.screen.DetectingScreen
 import com.example.kkubeok.screen.AlarmScreen
 import com.example.kkubeok.screen.HomeScreen
+import com.example.kkubeok.screen.TimelineScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -48,9 +49,10 @@ fun KkubeokMain(){
     NavHost(navController = navController, startDestination = "Login"){
         composable("Login") { LoginScreen(navController) }
         composable("Data Collecting") { DataCollecting(navController) }
-        composable("Detecting Start"){DetectingScreen(navController = navController)}
-        composable("alarm"){AlarmScreen(navController)}
+        composable("Detecting"){DetectingScreen(navController = navController)}
+        composable("Alarm"){AlarmScreen(navController)}
         composable("Home"){ HomeScreen(navController)}
+        composable("Timeline"){TimelineScreen(navController)}
     }
 }
 
