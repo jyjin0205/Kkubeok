@@ -54,7 +54,7 @@ fun TimelineScreen(navController: NavHostController?=null) {
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ){
-            var selectedIndex by remember { mutableStateOf(1) }
+            var selectedIndex by remember { mutableStateOf(0) }
 
             val sampleData = listOf(
                 MicrosleepSession(
@@ -134,7 +134,7 @@ fun TimelineDateHeader(
     selectedDateIndex: Int = 1,
     onDateSelected: (Int) -> Unit = {}
 ) {
-    val days = listOf("Mon" to "3", "Tue" to "4", "Wed" to "5", "Thu" to "6", "Fri" to "7", "Sat" to "8", "Sun" to "9")
+    val days = listOf("Sun" to "4", "Mon" to "5", "Tue" to "6", "Wed" to "7", "Thu" to "8", "Fri" to "9", "Sat" to "10")
 
     Row(
         modifier = Modifier
