@@ -5,8 +5,11 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.util.Log
 
 import java.io.File
+import java.io.BufferedWriter
+import java.io.FileWriter
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -17,15 +20,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 
+import androidx.activity.compose.BackHandler
 
 import androidx.compose.runtime.*
 
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DataCollectingTopBar(){
     CenterAlignedTopAppBar(
-        title = {Text("Data Collecting")}
+        title = {Text("Data Collecting",
+            modifier = Modifier.padding(top = 50.dp, bottom = 25.dp))
+                },
+        modifier = Modifier.height(140.dp)
     )
 }
 
@@ -34,39 +46,43 @@ fun DataCollectingTopBar(){
 fun DropdownMenuBox(
     options: List<String>,
     selectedOption: String,
-    onOptionSelected:(String) -> Unit
+    onOptionSelected:(String) -> Unit,
+    enabled: Boolean
 ){
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
+        onExpandedChange = { if(enabled) expanded = !expanded }
     ) {
         TextField(
             value = selectedOption,
             onValueChange = {},
             readOnly = true,
+            enabled = enabled,
             label = { Text("Posture") },
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
             modifier = Modifier
                 .menuAnchor()
-                .width(150.dp)
+                .width(200.dp)
         )
 
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            options.forEach { selectionOption ->
-                DropdownMenuItem(
-                    text = { Text(selectionOption) },
-                    onClick = {
-                        onOptionSelected(selectionOption)
-                        expanded = false
-                    }
-                )
+            if(enabled) {
+                options.forEach { selectionOption ->
+                    DropdownMenuItem(
+                        text = { Text(selectionOption) },
+                        onClick = {
+                            onOptionSelected(selectionOption)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -92,21 +108,21 @@ fun SensorDataBox(
         Spacer(modifier = Modifier.height(4.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("x: ${accelValue.first}", modifier = Modifier.weight(1f))
-            Text("x: ${gravityValue.first}", modifier = Modifier.weight(1f))
-            Text("x: ${gyroValue.first}", modifier = Modifier.weight(1f))
+            Text("x: %.5f".format(accelValue.first), modifier = Modifier.weight(1f))
+            Text("x: %.5f".format(gravityValue.first), modifier = Modifier.weight(1f))
+            Text("x: %.5f".format(gyroValue.first), modifier = Modifier.weight(1f))
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("y: ${accelValue.second}", modifier = Modifier.weight(1f))
-            Text("y: ${gravityValue.second}", modifier = Modifier.weight(1f))
-            Text("y: ${gyroValue.second}", modifier = Modifier.weight(1f))
+            Text("y: %.5f".format(accelValue.second), modifier = Modifier.weight(1f))
+            Text("y: %.5f".format(gravityValue.second), modifier = Modifier.weight(1f))
+            Text("y: %.5f".format(gyroValue.second), modifier = Modifier.weight(1f))
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("z: ${accelValue.third}", modifier = Modifier.weight(1f))
-            Text("z: ${gravityValue.third}", modifier = Modifier.weight(1f))
-            Text("z: ${gyroValue.third}", modifier = Modifier.weight(1f))
+            Text("z: %.5f".format(accelValue.third), modifier = Modifier.weight(1f))
+            Text("z: %.5f".format(gravityValue.third), modifier = Modifier.weight(1f))
+            Text("z: %.5f".format(gyroValue.third), modifier = Modifier.weight(1f))
         }
     }
 }
@@ -145,10 +161,9 @@ fun TimerBox(title: String, time:String, modifier: Modifier=Modifier){
 
 
 @Composable
-fun DataCollecting() {
+fun DataCollecting(navController: NavController) {
     val options = listOf("Others","Nodding Off","Lean Back","Resting Head(Right)","Resting Head(Left)")
     var selectedOptionText by remember { mutableStateOf(options[0]) }
-    var textFieldValue by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
@@ -165,6 +180,15 @@ fun DataCollecting() {
     var gravityValue by remember { mutableStateOf(Triple(0f,0f,0f))}
     var gyroValue by remember { mutableStateOf(Triple(0f,0f,0f))}
 
+    var totalTime by remember{mutableStateOf(0L)}
+    var currentTime by remember{mutableStateOf(0L)}
+    var microSleepTime by remember { mutableStateOf(0L) }
+    var startTimestamp by remember { mutableStateOf<Long?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+    var timerJob by remember { mutableStateOf<Job?>(null) }
+    //TODO 사람 이름을 어떻게 넘길 지
+
     val sensorListener = remember {
         object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
@@ -172,7 +196,7 @@ fun DataCollecting() {
                     val timestamp = System.currentTimeMillis()
                     val (x,y,z) = it.values
 
-                    //TODO:SensorData를 Add해야함
+
                     when(it.sensor.type){
                         Sensor.TYPE_ACCELEROMETER -> {
                             accelValue = Triple(x,y,z)
@@ -202,11 +226,15 @@ fun DataCollecting() {
             sensorManager.registerListener(sensorListener, accelerometersensor, SensorManager.SENSOR_DELAY_NORMAL)
             sensorManager.registerListener(sensorListener, gravitysensor, SensorManager.SENSOR_DELAY_NORMAL)
             sensorManager.registerListener(sensorListener, gyroscopesensor, SensorManager.SENSOR_DELAY_NORMAL)
+
         } else {
             sensorManager.unregisterListener(sensorListener)
         }
     }
 
+    BackHandler {
+        navController.popBackStack()
+    }
     Scaffold (
         topBar = { DataCollectingTopBar()}
     )
@@ -220,13 +248,19 @@ fun DataCollecting() {
         DropdownMenuBox(
             options = options,
             selectedOption = selectedOptionText,
-            onOptionSelected = { selectedOptionText = it}
+            onOptionSelected = { selectedOptionText = it},
+            enabled = !isListening
         )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly){
-            TimerBox(title = "Total Time", time = "00:00", modifier=Modifier.weight(1f))
 
-            TimerBox(title = "MicroSleep Time", time = "00:00",modifier=Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(30.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly){
+            TimerBox(title = "Total Time", time = formatSeconds(totalTime+currentTime), modifier=Modifier.weight(1f))
+
+            TimerBox(title = "MicroSleep Time", time = formatSeconds(currentTime),modifier=Modifier.weight(1f))
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         SensorDataBox(
             accelValue = accelValue,
@@ -234,37 +268,82 @@ fun DataCollecting() {
             gyroValue = gyroValue
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
         if(!isListening)
         {
-            Button(onClick = { isListening = true }, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { isListening = true
+                startTimestamp = System.currentTimeMillis()
+                timerJob = coroutineScope.launch{
+                    while (true) {
+                        delay(1000L)
+                        currentTime = (System.currentTimeMillis() - (startTimestamp ?: System.currentTimeMillis())) / 1000
+                    }
+                }
+                             },
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary)) {
                 Text("Start")
             }
         }
         else{
-            Button(onClick = { isListening = false }, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { isListening = false },
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary)) {
                 Text("Pause")
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { isListening = false }, modifier = Modifier.fillMaxWidth()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Button(onClick = { isListening = false
+                timerJob?.cancel()
+                timerJob = null
+                totalTime += currentTime
+                currentTime = 0
+                saveCSV(context, selectedOptionText, accelData, gravityData, gyroData) },
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary)) {
                 Text("Save")
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(30.dp))
     }}
-
-
 }
 
-fun saveCSV(context: Context, data: List<String>) {
-    val fileName = "sensor_data_${System.currentTimeMillis()}.csv"
-    val file = File(context.getExternalFilesDir(null), fileName)
+fun formatSeconds(seconds: Long): String {
+    val mins = seconds / 60
+    val secs = seconds % 60
+    return "%02d:%02d".format(mins, secs)
+}
 
-    file.bufferedWriter().use { writer ->
-        writer.write("timestamp,x,y,z\n")
-        data.forEach {
-            writer.write("$it\n")
+fun saveCSV(context: Context, selectedOptionText: String, accelData: List<String>,gravityData: List<String>, gyroData: List<String>) {
+
+    val filesAndData = listOf(
+        "${selectedOptionText}_accel.csv" to accelData,
+        "${selectedOptionText}_gravity.csv" to gravityData,
+        "${selectedOptionText}_gyro.csv" to gyroData
+    )
+
+    filesAndData.forEach { (fileName, dataList) ->
+        val file = File(context.getExternalFilesDir(null), fileName)
+        val fileExists = file.exists()
+
+        val writer = BufferedWriter(FileWriter(file, true))
+
+        writer.use {
+            if (!fileExists) {
+                it.write("timestamp,x,y,z\n")
+            }
+            dataList.forEach { line ->
+                it.write("$line\n")
+            }
         }
+        Log.d("SaveCSV", "Saving to: ${file.absolutePath}")
+
     }
+
 }

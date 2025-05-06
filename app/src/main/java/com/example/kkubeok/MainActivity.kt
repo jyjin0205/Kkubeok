@@ -43,9 +43,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KkubeokMain(){
     val navController = rememberNavController()
+
     NavHost(navController = navController, startDestination = "Login"){
         composable("Login") { LoginScreen(navController) }
-        composable("Data Collecting") { DataCollecting() }
+        composable("Data Collecting") { DataCollecting(navControlle) }
         composable("Detecting Start"){DetectingScreen(navController = navController)}
         composable("alarm"){AlarmScreen()}
     }
