@@ -14,14 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.layout.*
 
 
 import androidx.compose.runtime.*
-import kotlinx.coroutines.selects.select
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -148,7 +145,7 @@ fun TimerBox(title: String, time:String, modifier: Modifier=Modifier){
 
 
 @Composable
-fun DetectingScreen() {
+fun DataCollecting() {
     val options = listOf("Others","Nodding Off","Lean Back","Resting Head(Right)","Resting Head(Left)")
     var selectedOptionText by remember { mutableStateOf(options[0]) }
     var textFieldValue by remember { mutableStateOf("") }

@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
-import com.example.kkubeok.screen.DetectingScreen
+import com.example.kkubeok.screen.DataCollecting
 
 
 class MainActivity : ComponentActivity() {
@@ -43,7 +43,7 @@ fun KkubeokMain(){
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "login"){
         composable("login") { LoginScreen(navController) }
-        composable("detecting") {DetectingScreen()}
+        composable("Data Collecting") { DataCollecting() }
     }
 }
 
@@ -97,13 +97,13 @@ fun LoginScreen(navController: NavHostController) {
             }
             // Detecting Button
             Button(
-                onClick = {navController.navigate("detecting")},
+                onClick = {navController.navigate("Data Collecting")},
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
                 colors=ButtonDefaults.buttonColors(containerColor=Color.Black)
             ){
-                Text("Detecting", color=Color.White)
+                Text("Data Collecting", color=Color.White)
             }
         }
     }
