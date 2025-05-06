@@ -17,6 +17,8 @@ import com.example.kkubeok.ui.theme.KkubeokTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 
+import com.example.kkubeok.BottomNavigationBar
+
 @Composable
 fun DetectingScreen(navController: NavHostController?=null){
     Scaffold(
@@ -136,39 +138,6 @@ fun SensorColumn(title: String) {
         Text("X 0.000")
         Text("Y 0.000")
         Text("Z 0.000")
-    }
-}
-
-@Composable
-fun BottomNavigationBar(navController: NavHostController){
-    NavigationBar{
-        NavigationBarItem(
-            icon={Icon(Icons.Default.Home, contentDescription="Home")},
-            selected=false,
-            onClick={/* TODO: Go to Home*/}
-        )
-        NavigationBarItem(
-            icon={Icon(Icons.Default.Timeline, contentDescription="Timeline")},
-            selected=false,
-            onClick={/* TODO: Go to Timeline*/}
-        )
-        NavigationBarItem(
-            icon={Icon(Icons.Default.Add, contentDescription="Detecting")},
-            selected=false,
-            onClick={/* TODO: Go to Detecting*/}
-        )
-        NavigationBarItem(
-            icon={Icon(Icons.Default.BarChart, contentDescription="Analysis")},
-            selected=false,
-            onClick={/* TODO: Go to Analysis*/}
-        )
-        NavigationBarItem(
-            icon={Icon(Icons.Default.Alarm, contentDescription="Alarm")},
-            selected=false,
-            onClick={
-                navController.navigate("alarm")
-            }
-        )
     }
 }
 
