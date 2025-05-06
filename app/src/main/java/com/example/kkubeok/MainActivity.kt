@@ -46,7 +46,7 @@ fun KkubeokMain(){
 
     NavHost(navController = navController, startDestination = "Login"){
         composable("Login") { LoginScreen(navController) }
-        composable("Data Collecting") { DataCollecting(navControlle) }
+        composable("Data Collecting") { DataCollecting(navController) }
         composable("Detecting Start"){DetectingScreen(navController = navController)}
         composable("alarm"){AlarmScreen()}
     }
