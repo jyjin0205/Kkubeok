@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import androidx.navigation.NavHostController
 import com.example.kkubeok.BottomNavigationBar
 import com.example.kkubeok.ui.theme.KkubeokTheme
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.lazy.itemsIndexed
 
 data class MicrosleepSession(
     val date: String,
@@ -134,26 +136,42 @@ fun TimelineDateHeader(
     selectedDateIndex: Int = 1,
     onDateSelected: (Int) -> Unit = {}
 ) {
-    val days = listOf("Sun" to "4", "Mon" to "5", "Tue" to "6", "Wed" to "7", "Thu" to "8", "Fri" to "9", "Sat" to "10")
+    val days = listOf(
+        "Sun" to "4", "Mon" to "5", "Tue" to "6", "Wed" to "7",
+        "Thu" to "8", "Fri" to "9", "Sat" to "10", "Sun" to "11", "Mon" to "12"
+    )
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 8.dp)
     ) {
-        Icon(
-            imageVector = Icons.Default.ArrowBack,
-            contentDescription = "Previous",
-            modifier = Modifier.size(24.dp)
-        )
-
+        // 양 옆 화살표
         Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            days.forEachIndexed { index, (day, date) ->
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Previous",
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "Next",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            itemsIndexed(days) { index, (day, date) ->
                 val isSelected = index == selectedDateIndex
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -186,14 +204,9 @@ fun TimelineDateHeader(
                 }
             }
         }
-
-        Icon(
-            imageVector = Icons.Default.ArrowForward,
-            contentDescription = "Next",
-            modifier = Modifier.size(24.dp)
-        )
     }
 }
+
 
 @Composable
 fun MicrosleepRecordCard(record: MicrosleepRecord) {
