@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -37,22 +38,26 @@ fun HomeScreen(navController: NavHostController?=null) {
 
             Text(
                 text = "Home",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+
             ) {
                 Text(
                     text = "Today",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.align(Alignment.Center)
                 )
-                TextButton(onClick = { /* TODO: edit logic */ }) {
+                TextButton(onClick = { /* TODO: edit logic */ },
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
                     Text("EDIT")
                 }
             }
@@ -73,21 +78,34 @@ fun HomeScreen(navController: NavHostController?=null) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Daily Routine",
-                style = MaterialTheme.typography.titleMedium
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    ,
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             )
+            {
+                Spacer(modifier = Modifier.height(8.dp).width(8.dp))
+                Text(
+                    text = "  Daily Routine",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 64.dp),
+                    .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                RoutineCard(time = "10:00 am")
-                RoutineCard(time = "01:00 pm")
+                MealCard(time = "10:00 am")
+                MealCard(time = "01:00 pm")
             }
         }
     }
@@ -95,33 +113,42 @@ fun HomeScreen(navController: NavHostController?=null) {
 
 @Composable
 fun SleepStatCard(icon: ImageVector, label: String, value: String) {
+    val customColor = Color(255,200,0)
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(150.dp)
             .padding(vertical = 6.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp),
+                .padding(16.dp)
+                .fillMaxHeight(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 icon,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
+                modifier = Modifier.size(80.dp)
+                    .align(Alignment.CenterVertically),
+                tint = customColor
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Column {
+            Column(
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.Start,
+            )
+            {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -129,11 +156,12 @@ fun SleepStatCard(icon: ImageVector, label: String, value: String) {
 }
 
 @Composable
-fun RoutineCard(time: String) {
+fun MealCard(time: String) {
     Card(
         modifier = Modifier
             .width(100.dp)
             .height(120.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -145,53 +173,17 @@ fun RoutineCard(time: String) {
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.AccessTime,
+                imageVector = Icons.Filled.Fastfood,
                 contentDescription = null,
                 modifier = Modifier.size(28.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = time,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 18.sp)
             )
         }
-    }
-}
-
-@Composable
-fun BottomNavigationBar() {
-    NavigationBar {
-        NavigationBarItem(
-            selected = true,
-            onClick = { /* TODO */ },
-            icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-            label = { Text("Home") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
-            label = { Text("Search") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Icon(Icons.Filled.Add, contentDescription = "Add") },
-            label = { Text("Add") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Icon(Icons.Filled.Notifications, contentDescription = "Notifications") },
-            label = { Text("Alerts") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { /* TODO */ },
-            icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
-            label = { Text("Profile") }
-        )
     }
 }
 
