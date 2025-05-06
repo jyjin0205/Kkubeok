@@ -14,11 +14,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.style.TextAlign
+import androidx.navigation.NavHostController
+
+import com.example.kkubeok.BottomNavigationBar
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavHostController?=null) {
     Scaffold(
-        bottomBar = { BottomNavigationBar() }
+        bottomBar={
+            navController?.let{
+                BottomNavigationBar(navController=it)
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
