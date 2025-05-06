@@ -27,7 +27,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            KkubeokTheme {             KkubeokMain()
+            KkubeokTheme {
+                KkubeokMain()
             }
         }
     }
