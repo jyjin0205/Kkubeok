@@ -22,6 +22,7 @@ import com.example.kkubeok.BottomNavigationBar
 @Composable
 fun HomeScreen(navController: NavHostController?=null) {
     Scaffold(
+        containerColor = Color.White,
         bottomBar={
             navController?.let{
                 BottomNavigationBar(navController=it)
