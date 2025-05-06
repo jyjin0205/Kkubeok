@@ -43,7 +43,7 @@ fun KkubeokMain(){
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "login"){
         composable("login") { LoginScreen(navController) }
-        composable("Data Collecting") { DataCollecting() }
+        composable("Data Collecting") { DataCollecting(navController) }
     }
 }
 
