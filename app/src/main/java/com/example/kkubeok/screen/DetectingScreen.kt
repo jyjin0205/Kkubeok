@@ -14,10 +14,18 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.kkubeok.ui.theme.KkubeokTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 
 @Composable
 fun DetectingScreen(navController: NavHostController?=null){
-    Scaffold{ paddingValues->
+    Scaffold(
+        bottomBar={
+            navController?.let{
+                BottomNavigationBar(navController=it)
+            }
+        }
+    ){ paddingValues->
         Column(
             modifier=Modifier
                 .fillMaxSize()
@@ -131,10 +139,44 @@ fun SensorColumn(title: String) {
     }
 }
 
+@Composable
+fun BottomNavigationBar(navController: NavHostController){
+    NavigationBar{
+        NavigationBarItem(
+            icon={Icon(Icons.Default.Home, contentDescription="Home")},
+            selected=false,
+            onClick={/* TODO: Go to Home*/}
+        )
+        NavigationBarItem(
+            icon={Icon(Icons.Default.Timeline, contentDescription="Timeline")},
+            selected=false,
+            onClick={/* TODO: Go to Timeline*/}
+        )
+        NavigationBarItem(
+            icon={Icon(Icons.Default.Add, contentDescription="Detecting")},
+            selected=false,
+            onClick={/* TODO: Go to Detecting*/}
+        )
+        NavigationBarItem(
+            icon={Icon(Icons.Default.BarChart, contentDescription="Analysis")},
+            selected=false,
+            onClick={/* TODO: Go to Analysis*/}
+        )
+        NavigationBarItem(
+            icon={Icon(Icons.Default.Alarm, contentDescription="Alarm")},
+            selected=false,
+            onClick={
+                navController.navigate("alarm")
+            }
+        )
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun DetectingScreenPreview() {
+    val dummyNavController=rememberNavController()
     KkubeokTheme {
-        DetectingScreen()
+        DetectingScreen(navController=dummyNavController)
     }
 }

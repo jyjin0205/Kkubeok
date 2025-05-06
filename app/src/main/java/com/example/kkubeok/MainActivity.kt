@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 
 import com.example.kkubeok.screen.DataCollecting
 import com.example.kkubeok.screen.DetectingScreen
+import com.example.kkubeok.screen.AlarmScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -45,7 +46,8 @@ fun KkubeokMain(){
     NavHost(navController = navController, startDestination = "Login"){
         composable("Login") { LoginScreen(navController) }
         composable("Data Collecting") { DataCollecting() }
-        composable("Detecting Start"){DetectingScreen()}
+        composable("Detecting Start"){DetectingScreen(navController = navController)}
+        composable("alarm"){AlarmScreen()}
     }
 }
 
