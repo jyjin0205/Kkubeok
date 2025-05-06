@@ -24,6 +24,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
 import com.example.kkubeok.screen.DataCollecting
+import com.example.kkubeok.screen.DetectingScreen
+import com.example.kkubeok.screen.AlarmScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -41,9 +43,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KkubeokMain(){
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "login"){
-        composable("login") { LoginScreen(navController) }
-        composable("Data Collecting") { DataCollecting(navController) }
+
+    NavHost(navController = navController, startDestination = "Login"){
+        composable("Login") { LoginScreen(navController) }
+        composable("Data Collecting") { DataCollecting(navControlle) }
+        composable("Detecting Start"){DetectingScreen(navController = navController)}
+        composable("alarm"){AlarmScreen()}
     }
 }
 
@@ -87,7 +92,7 @@ fun LoginScreen(navController: NavHostController) {
             )
             // Start Button
             Button(
-                onClick={/* TODO: Start Click Activity*/},
+                onClick={navController.navigate("Detecting Start")},
                 modifier=Modifier
                     .fillMaxWidth()
                     .padding(vertical=4.dp),
