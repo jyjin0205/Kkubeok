@@ -18,7 +18,7 @@ fun BottomNavigationBar(navController: NavHostController){
         NavigationBarItem(
             icon={ Icon(Icons.Default.Home, contentDescription="Home") },
             selected=false,
-            onClick={/* TODO: Go to Home*/}
+            onClick={navController.navigate("Home")}
         )
         NavigationBarItem(
             icon={ Icon(Icons.Default.Timeline, contentDescription="Timeline") },
