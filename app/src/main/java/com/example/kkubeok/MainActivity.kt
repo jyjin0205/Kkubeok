@@ -62,7 +62,7 @@ fun KkubeokMain(db: AppDatabase, context:Context){
         composable("Data Collecting") { DataCollecting(navController) }
         composable("Detecting"){DetectingScreen(navController = navController)}
         composable("Alarm"){AlarmScreen(navController)}
-        composable("Home"){ HomeScreen(navController)}
+        composable("Home"){ HomeScreen(navController, context)}
         composable("Timeline"){TimelineScreen(navController)}
     }
 }

@@ -1,5 +1,6 @@
 package com.example.kkubeok.screen
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -20,7 +21,7 @@ import androidx.navigation.NavHostController
 import com.example.kkubeok.BottomNavigationBar
 
 @Composable
-fun HomeScreen(navController: NavHostController?=null) {
+fun HomeScreen(navController: NavHostController?=null, context: Context?= null) {
     Scaffold(
         containerColor = Color.White,
         bottomBar={
@@ -82,7 +83,7 @@ fun HomeScreen(navController: NavHostController?=null) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(240.dp)
                     ,
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -96,7 +97,6 @@ fun HomeScreen(navController: NavHostController?=null) {
                 )
             }
 
-
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(
@@ -107,6 +107,7 @@ fun HomeScreen(navController: NavHostController?=null) {
             ) {
                 MealCard(time = "10:00 am")
                 MealCard(time = "01:00 pm")
+                MealCard(time = "05:00 pm")
             }
         }
     }
@@ -118,7 +119,7 @@ fun SleepStatCard(icon: ImageVector, label: String, value: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp)
+            .height(120.dp)
             .padding(vertical = 6.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
