@@ -26,6 +26,11 @@ import com.example.kkubeok.ui.theme.KkubeokTheme
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -69,16 +74,6 @@ fun DetectingScreen(navController: NavHostController?=null){
         }
     }
 
-    LaunchedEffect(isListening) {
-        if (isListening) {
-            sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
-            sensorManager.registerListener(listener, gravity, SensorManager.SENSOR_DELAY_NORMAL)
-            sensorManager.registerListener(listener, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
-        } else {
-            sensorManager.unregisterListener(listener)
-        }
-    }
-
     Scaffold(
         bottomBar={
             navController?.let{
@@ -104,13 +99,67 @@ fun DetectingScreen(navController: NavHostController?=null){
                 modifier=Modifier.align(Alignment.Start)
             )
 
+            // Day Block
+            val todayDate by produceState(initialValue = getFormattedToday()) {
+                while (true) {
+                    value = getFormattedToday()
+                    delay(60 * 1000L)
+                }
+            }
+            Text(
+                text = todayDate,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                fontSize=18.sp,
+                modifier = Modifier.align(Alignment.Start)
+            )
+
             // Time Block
             Row(
                 modifier=Modifier.fillMaxWidth(),
                 horizontalArrangement=Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
             ){
-                TimerCard(title="Total Time", time=formatSeconds(totalTime+currentTime),modifier=Modifier.weight(1f))
-                TimerCard(title="Microsleep Time", time=formatSeconds(currentTime), modifier=Modifier.weight(1f))
+                // Real World Current Time
+                Card(
+                    modifier=Modifier.weight(1f)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Current Time", fontWeight = FontWeight.Medium, fontSize=15.sp, maxLines=1)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val currentClock by produceState(initialValue=getCurrentHourMinute()){
+                            while(true){
+                                value=getCurrentHourMinute()
+                                delay(60*1000L)
+                            }
+                        }
+                        Text(currentClock, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Detecting Time Block
+                Card(
+                    modifier=Modifier.weight(1f)
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Detecting Time", fontWeight = FontWeight.Medium, fontSize=15.sp, maxLines=1)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(formatSeconds(totalTime+currentTime), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
             Spacer(modifier=Modifier.height(8.dp))
@@ -120,61 +169,57 @@ fun DetectingScreen(navController: NavHostController?=null){
 
             Spacer(modifier=Modifier.height(8.dp))
 
-            // Start Button
+            // Start/Stop Button
+            var isSensing by remember{mutableStateOf(false)}
+
             Button(
                 onClick={
-                    isListening=true
-                    startTimestamp=System.currentTimeMillis()
-                    timerJob=coroutineScope.launch{
-                        while(true){
-                            delay(1000L)
-                            currentTime=(System.currentTimeMillis() - (startTimestamp ?: System.currentTimeMillis())) / 1000
+                    if(!isSensing){
+                        // Start
+                        sensorManager.registerListener(listener, accelerometer, 10000)
+                        sensorManager.registerListener(listener, gravity, 10000)
+                        sensorManager.registerListener(listener, gyroscope, 10000)
+                        startTimestamp=System.currentTimeMillis()
+                        timerJob=coroutineScope.launch{
+                            while(true){
+                                delay(1000L)
+                                currentTime = (System.currentTimeMillis() - (startTimestamp ?: 0L)) / 1000
+                            }
                         }
+                    } else {
+                        // Stop
+                        sensorManager.unregisterListener(listener)
+                        timerJob?.cancel()
+                        totalTime+=currentTime
+                        currentTime=0L
                     }
+                    isSensing=!isSensing
                 },
-                enabled=!isListening,
                 modifier=Modifier
                     .fillMaxWidth()
                     .padding(vertical=4.dp),
                 colors=ButtonDefaults.buttonColors(containerColor= Color.Black)
             )
             {
-                Text("Start", color=Color.White)
-            }
-
-            // Pause Button
-            Button(
-                onClick={/* TODO: Pause logic */},
-                modifier=Modifier
-                    .fillMaxWidth()
-                    .padding(vertical=4.dp),
-                colors=ButtonDefaults.buttonColors(containerColor=Color.Black)
-            )
-            {
-                Text("Pause", color=Color.White)
+                Text(
+                    if(isSensing) "Stop" else "Start",
+                    color=Color.White)
             }
         }
     }
 }
-
-@Composable
-fun TimerCard(title: String, time: String, modifier: Modifier=Modifier) {
-    Card(
-        modifier = modifier
-            .padding(4.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(title, fontWeight = FontWeight.Medium, fontSize=15.sp, maxLines=1)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(time, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        }
-    }
+fun getFormattedToday(): String{
+    val calendar=Calendar.getInstance()
+    val day=calendar.get(Calendar.DAY_OF_MONTH)
+    val month = SimpleDateFormat("MMM", Locale.getDefault()).format(calendar.time)
+    val weekday = SimpleDateFormat("EEE", Locale.getDefault()).format(calendar.time)
+    return "$day $month ($weekday)"
+}
+fun getCurrentHourMinute(): String {
+    val calendar = Calendar.getInstance()
+    val hour=calendar.get(Calendar.HOUR_OF_DAY)
+    val minute=calendar.get(Calendar.MINUTE)
+    return "%02dh %02dm".format(hour,minute)
 }
 
 @Composable
