@@ -196,7 +196,6 @@ fun DataCollecting(navController: NavController) {
                     val timestamp = System.currentTimeMillis()
                     val (x,y,z) = it.values
 
-
                     when(it.sensor.type){
                         Sensor.TYPE_ACCELEROMETER -> {
                             accelValue = Triple(x,y,z)
@@ -334,15 +333,20 @@ fun saveCSV(context: Context, selectedOptionText: String, accelData: List<String
 
         val writer = BufferedWriter(FileWriter(file, true))
 
-        writer.use {
-            if (!fileExists) {
-                it.write("timestamp,x,y,z\n")
+        try {
+            writer.use {
+                if (!fileExists) {
+                    it.write("timestamp,x,y,z\n")
+                }
+                dataList.forEach { line ->
+                    it.write("$line\n")
+                }
             }
-            dataList.forEach { line ->
-                it.write("$line\n")
-            }
+            Log.d("SaveCSV", "Saved to ${file.absolutePath}")
+        } catch (e: Exception) {
+            Log.e("SaveCSV", "파일 저장 중 오류: ${e.message}", e)
         }
-        Log.d("SaveCSV", "Saving to: ${file.absolutePath}")
+
 
     }
 
