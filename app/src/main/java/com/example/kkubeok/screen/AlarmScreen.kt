@@ -64,7 +64,7 @@ fun AlarmScreen(navController: NavHostController? = null) {
 
             Button(
                 onClick = {
-                    navController?.navigate("Countdown")
+                    navController?.navigate("Countdown/$hour/$minute/$second")
                 },
                 modifier = Modifier
                     .fillMaxWidth()

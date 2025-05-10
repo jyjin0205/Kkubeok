@@ -33,6 +33,8 @@ import com.example.kkubeok.screen.CountdownScreen
 
 //import database
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
 import com.example.kkubeok.database.*
 import kotlinx.coroutines.CoroutineScope
@@ -65,7 +67,21 @@ fun KkubeokMain(db: AppDatabase, context:Context){
         composable("Alarm"){AlarmScreen(navController)}
         composable("Home"){ HomeScreen(navController, context)}
         composable("Timeline"){TimelineScreen(navController)}
-        composable("Countdown"){CountdownScreen(navController)}
+        composable(
+            route="Countdown/{hour}/{minute}/{second}",
+            arguments=listOf(
+                navArgument("hour"){type= NavType.IntType},
+                navArgument("minute"){type=NavType.IntType},
+                navArgument("second"){type=NavType.IntType},
+            )
+        ){
+            backStackEntry->
+            val hour=backStackEntry.arguments?.getInt("hour")?:0
+            val minute=backStackEntry.arguments?.getInt("minute")?:0
+            val second=backStackEntry.arguments?.getInt("second")?:0
+
+            CountdownScreen(hour,minute,second, navController)
+        }
     }
 }
 
