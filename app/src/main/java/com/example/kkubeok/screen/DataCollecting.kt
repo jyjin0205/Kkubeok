@@ -29,12 +29,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 import androidx.navigation.NavController
+import com.example.kkubeok.database.DatabaseProvider
+import com.example.kkubeok.database.AppDatabase
+import com.example.kkubeok.database.Detected
+import com.example.kkubeok.database.TrainingData
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DataCollectingTopBar(){
+fun DataCollectingTopBar(userId: String?){
     CenterAlignedTopAppBar(
-        title = {Text("Data Collecting",
+        title = {Text("$userId Data Collecting",
             modifier = Modifier.padding(top = 50.dp, bottom = 25.dp))
                 },
         modifier = Modifier.height(140.dp)
@@ -187,7 +193,10 @@ fun DataCollecting(navController: NavController) {
 
     val coroutineScope = rememberCoroutineScope()
     var timerJob by remember { mutableStateOf<Job?>(null) }
-    //TODO 사람 이름을 어떻게 넘길 지
+
+    val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    var userId = prefs.getString("user_id",null)
+    val db = remember { DatabaseProvider.getDatabase(context) }
 
     val sensorListener = remember {
         object : SensorEventListener {
@@ -235,7 +244,7 @@ fun DataCollecting(navController: NavController) {
         navController.popBackStack()
     }
     Scaffold (
-        topBar = { DataCollectingTopBar()}
+        topBar = { DataCollectingTopBar(userId)}
     )
     { innerPadding ->
         Column(
@@ -301,7 +310,7 @@ fun DataCollecting(navController: NavController) {
                 timerJob = null
                 totalTime += currentTime
                 currentTime = 0
-                saveCSV(context, selectedOptionText, accelData, gravityData, gyroData) },
+                saveCSV(db, userId, context, selectedOptionText, accelData, gravityData, gyroData) },
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
@@ -319,12 +328,12 @@ fun formatSeconds(seconds: Long): String {
     return "%02d:%02d".format(mins, secs)
 }
 
-fun saveCSV(context: Context, selectedOptionText: String, accelData: List<String>,gravityData: List<String>, gyroData: List<String>) {
+fun saveCSV(db: AppDatabase, userId: String?, context: Context, selectedOptionText: String, accelData: List<String>,gravityData: List<String>, gyroData: List<String>) {
 
     val filesAndData = listOf(
-        "${selectedOptionText}_accel.csv" to accelData,
-        "${selectedOptionText}_gravity.csv" to gravityData,
-        "${selectedOptionText}_gyro.csv" to gyroData
+        "${userId}_${selectedOptionText}_accel.csv" to accelData,
+        "${userId}_${selectedOptionText}_gravity.csv" to gravityData,
+        "${userId}_${selectedOptionText}_gyro.csv" to gyroData
     )
 
     filesAndData.forEach { (fileName, dataList) ->
@@ -336,6 +345,7 @@ fun saveCSV(context: Context, selectedOptionText: String, accelData: List<String
         try {
             writer.use {
                 if (!fileExists) {
+                    saveCSVInfoToDatabase(db, userId, file.absolutePath)
                     it.write("timestamp,x,y,z\n")
                 }
                 dataList.forEach { line ->
@@ -346,8 +356,17 @@ fun saveCSV(context: Context, selectedOptionText: String, accelData: List<String
         } catch (e: Exception) {
             Log.e("SaveCSV", "파일 저장 중 오류: ${e.message}", e)
         }
-
-
     }
+}
 
+fun saveCSVInfoToDatabase(db: AppDatabase, userId: String?, path:String)
+{
+    if(userId != null)
+    {
+        CoroutineScope(Dispatchers.IO).launch{
+            db.trainingDataDao().insert(
+                TrainingData(user_id = userId, file_path = path)
+            )
+        }
+    }
 }
