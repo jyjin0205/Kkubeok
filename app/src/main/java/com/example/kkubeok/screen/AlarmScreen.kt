@@ -1,30 +1,38 @@
 package com.example.kkubeok.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.navigation.NavHostController
-import com.example.kkubeok.ui.theme.KkubeokTheme
-
+import androidx.navigation.compose.rememberNavController
 import com.example.kkubeok.BottomNavigationBar
+import com.example.kkubeok.ui.theme.KkubeokTheme
+import java.util.*
 
 @Composable
-fun AlarmScreen(navController: NavHostController?=null) {
+fun AlarmScreen(navController: NavHostController? = null) {
+    var hour by remember { mutableIntStateOf(0) }
+    var minute by remember { mutableIntStateOf(0) }
+    var second by remember { mutableIntStateOf(0) }
 
     Scaffold(
-        bottomBar={
-            navController?.let{
-                BottomNavigationBar(navController=it)
+        bottomBar = {
+            navController?.let {
+                BottomNavigationBar(navController = it)
             }
         }
     ) { paddingValues ->
@@ -33,12 +41,9 @@ fun AlarmScreen(navController: NavHostController?=null) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Header
             Text(
                 text = "Alarm",
                 style = MaterialTheme.typography.headlineSmall,
@@ -46,93 +51,80 @@ fun AlarmScreen(navController: NavHostController?=null) {
                 modifier = Modifier.align(Alignment.Start)
             )
 
-            // Picker Box
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8E6F2)), // 연보라색
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1EEF6)),
                 shape = RoundedCornerShape(24.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // Time Pickers Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TimeColumn("00", "Hour")
-                        Text(":", fontSize = 24.sp, modifier = Modifier.padding(horizontal = 4.dp))
-                        TimeColumn("00", "Minute")
-                        Text(":", fontSize = 24.sp, modifier = Modifier.padding(horizontal = 4.dp))
-                        TimeColumn("00", "Seconds")
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Buttons Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(imageVector = Icons.Default.AccessTime, contentDescription = "Clock")
-                        Row {
-                            TextButton(onClick = { /* TODO: Cancel */ }) {
-                                Text("Cancel", color = Color.Black)
-                            }
-                            TextButton(onClick = { /* TODO: OK */ }) {
-                                Text("OK", color = Color.Black)
-                            }
-                        }
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ScrollTimePicker(label = "Hour", maxValue = 23) { hour = it }
+                    Text(":", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    ScrollTimePicker(label = "Minute", maxValue = 59) { minute = it }
+                    Text(":", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    ScrollTimePicker(label = "Second", maxValue = 59) { second = it }
                 }
             }
 
-            // Start Button
             Button(
-                onClick = { /* TODO: Start logic */ },
+                onClick = { /* TODO: navigate to countdown with time */ },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                shape = RoundedCornerShape(24.dp)
             ) {
                 Text("Start", color = Color.White)
-            }
-
-            // Pause Button
-            Button(
-                onClick = { /* TODO: Pause logic */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-            ) {
-                Text("Pause", color = Color.White)
             }
         }
     }
 }
 
 @Composable
-fun TimeColumn(time: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = time,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Normal
-        )
-    }
-}
+fun ScrollTimePicker(label: String, maxValue: Int, onValueChange: (Int) -> Unit) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = 0)
+    val visibleItems = 3
 
-@Preview(showBackground = true)
-@Composable
-fun AlarmScreenPreview() {
-    KkubeokTheme {
-        AlarmScreen()
+    LaunchedEffect(listState.firstVisibleItemScrollOffset, listState.firstVisibleItemIndex) {
+        val centerIndex = listState.firstVisibleItemIndex + if (listState.firstVisibleItemScrollOffset > 50) 1 else 0
+        onValueChange(centerIndex.coerceIn(0, maxValue))
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .height(100.dp)
+                .width(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center
+            ) {
+                items(count = maxValue + 1) { index ->
+                    val centerIndex = listState.firstVisibleItemIndex + 1
+                    val isSelected = index == centerIndex
+                    Text(
+                        text = "%02d".format(index),
+                        fontSize = if (isSelected) 22.sp else 14.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = Color.Black,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(36.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        }
+        Text(label, fontSize = 12.sp, color = Color.Gray)
     }
 }
