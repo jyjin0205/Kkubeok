@@ -1,5 +1,6 @@
 package com.example.kkubeok
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,18 +47,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             KkubeokTheme {
-                KkubeokMain(db)
+                KkubeokMain(db, this)
             }
         }
     }
 }
 
 @Composable
-fun KkubeokMain(db: AppDatabase){
+fun KkubeokMain(db: AppDatabase, context:Context){
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "Login"){
-        composable("Login") { LoginScreen(navController, db) }
+        composable("Login") { LoginScreen(navController, db, context) }
         composable("Data Collecting") { DataCollecting(navController) }
         composable("Detecting"){DetectingScreen(navController = navController)}
         composable("Alarm"){AlarmScreen(navController)}
@@ -67,7 +68,7 @@ fun KkubeokMain(db: AppDatabase){
 }
 
 @Composable
-fun LoginScreen(navController: NavHostController, db:AppDatabase) {
+fun LoginScreen(navController: NavHostController, db:AppDatabase, context: Context) {
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -83,33 +84,45 @@ fun LoginScreen(navController: NavHostController, db:AppDatabase) {
                 style = MaterialTheme.typography.headlineMedium,
                 modifier=Modifier.padding(bottom=32.dp)
             )
-            // Welcome Comment
-            Text(
-                text= "Hello, What's your name?",
-                style=MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text="Enter Your Name",
-                style=MaterialTheme.typography.bodySmall,
-                color=Color.Gray,
-                modifier=Modifier.padding(bottom=8.dp)
-            )
-            // Name Input Bar
+            val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+            var userId = prefs.getString("user_id",null)
             var name by remember{mutableStateOf("")}
-            OutlinedTextField(
-                value=name,
-                onValueChange={name=it},
-                placeholder={Text("Gildong")},
-                modifier=Modifier
-                    .fillMaxWidth()
-                    .padding(bottom=24.dp)
-            )
-
+            if(userId != null)
+            {
+                name = userId
+                Text(
+                    text= "Hello, $userId",
+                    style=MaterialTheme.typography.titleMedium
+                )
+            }
+            else{
+                // Welcome Comment
+                Text(
+                    text= "Hello, What's your name?",
+                    style=MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text="Enter Your Name",
+                    style=MaterialTheme.typography.bodySmall,
+                    color=Color.Gray,
+                    modifier=Modifier.padding(bottom=8.dp)
+                )
+                // Name Input Bar
+                OutlinedTextField(
+                    value=name,
+                    onValueChange={name=it},
+                    placeholder={Text("Gildong")},
+                    modifier=Modifier
+                        .fillMaxWidth()
+                        .padding(bottom=24.dp)
+                )
+            }
             if(name != "") {
                 // Start Button
                 Button(
                     onClick = {
                         insertUserId(db, name)
+                        saveCurrentUser(name, context)
                         navController.navigate("Home")
                     },
                     modifier = Modifier
@@ -123,6 +136,7 @@ fun LoginScreen(navController: NavHostController, db:AppDatabase) {
                 Button(
                     onClick = {
                         insertUserId(db, name)
+                        saveCurrentUser(name, context)
                         navController.navigate("Data Collecting")
                     },
                     modifier = Modifier
@@ -131,6 +145,21 @@ fun LoginScreen(navController: NavHostController, db:AppDatabase) {
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                 ) {
                     Text("Data Collecting", color = Color.White)
+                }
+                if(userId != null)
+                {
+                    Button(
+                        onClick = {
+                            destroyCurrentUser(context)
+                            navController.navigate("Login")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                    ) {
+                        Text("LogOut", color = Color.White)
+                    }
                 }
             }
         }
@@ -147,6 +176,16 @@ fun insertUserId(db: AppDatabase, username: String) {
             )
         }
     }
+}
+
+fun saveCurrentUser(username: String, context: Context) {
+    val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    prefs.edit().putString("user_id",username).apply()
+}
+
+fun destroyCurrentUser(context: Context) {
+    val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    prefs.edit().clear().apply()
 }
 
 /*
