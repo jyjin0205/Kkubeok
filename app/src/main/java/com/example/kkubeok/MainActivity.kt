@@ -29,25 +29,35 @@ import com.example.kkubeok.screen.AlarmScreen
 import com.example.kkubeok.screen.HomeScreen
 import com.example.kkubeok.screen.TimelineScreen
 
+//import database
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.example.kkubeok.database.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val db = DatabaseProvider.getDatabase(this)
+
         setContent {
             KkubeokTheme {
-                KkubeokMain()
+                KkubeokMain(db)
             }
         }
     }
 }
 
 @Composable
-fun KkubeokMain(){
+fun KkubeokMain(db: AppDatabase){
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "Login"){
-        composable("Login") { LoginScreen(navController) }
+        composable("Login") { LoginScreen(navController, db) }
         composable("Data Collecting") { DataCollecting(navController) }
         composable("Detecting"){DetectingScreen(navController = navController)}
         composable("Alarm"){AlarmScreen(navController)}
@@ -57,7 +67,7 @@ fun KkubeokMain(){
 }
 
 @Composable
-fun LoginScreen(navController: NavHostController) {
+fun LoginScreen(navController: NavHostController, db:AppDatabase) {
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -94,30 +104,52 @@ fun LoginScreen(navController: NavHostController) {
                     .fillMaxWidth()
                     .padding(bottom=24.dp)
             )
-            // Start Button
-            Button(
-                onClick={navController.navigate("Home")},
-                modifier=Modifier
-                    .fillMaxWidth()
-                    .padding(vertical=4.dp),
-                colors=ButtonDefaults.buttonColors(containerColor = Color.Black )
-            ){
-                Text("Start", color=Color.White)
-            }
-            // Detecting Button
-            Button(
-                onClick = {navController.navigate("Data Collecting")},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                colors=ButtonDefaults.buttonColors(containerColor=Color.Black)
-            ){
-                Text("Data Collecting", color=Color.White)
+
+            if(name != "") {
+                // Start Button
+                Button(
+                    onClick = {
+                        insertUserId(db, name)
+                        navController.navigate("Home")
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                ) {
+                    Text("Start", color = Color.White)
+                }
+                // Detecting Button
+                Button(
+                    onClick = {
+                        insertUserId(db, name)
+                        navController.navigate("Data Collecting")
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                ) {
+                    Text("Data Collecting", color = Color.White)
+                }
             }
         }
     }
 }
 
+fun insertUserId(db: AppDatabase, username: String) {
+    CoroutineScope(Dispatchers.IO).launch{
+        val existingUser = db.userInfoDao().getUser(username)
+        if(existingUser == null)
+        {
+            db.userInfoDao().insert(
+                UserInfo(user_id = username)
+            )
+        }
+    }
+}
+
+/*
 @Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
@@ -126,6 +158,7 @@ fun LoginScreenPreview() {
         LoginScreen(navController = dummyNavController)
     }
 }
+ */
 
 
 
