@@ -3,7 +3,7 @@ import androidx.room.RoomDatabase
 import androidx.room.Database
 
 @Database(
-    entities = [UserInfo::class, TrainingData::class, Detected::class, Meal::class, SleepLog::class, Schedule::class],
+    entities = [UserInfo::class, TrainingData::class, Detected::class, Meal::class, SleepLog::class, Schedule::class, RawData::class],
     version = 1
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -13,4 +13,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun mealDao(): MealDao
     abstract fun sleepLogDao(): SleepLogDao
     abstract fun scheduleDao(): ScheduleDao
+    abstract fun rawDataDao(): RawDataDao
 }
