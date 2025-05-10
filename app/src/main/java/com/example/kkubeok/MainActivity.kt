@@ -29,6 +29,7 @@ import com.example.kkubeok.screen.DetectingScreen
 import com.example.kkubeok.screen.AlarmScreen
 import com.example.kkubeok.screen.HomeScreen
 import com.example.kkubeok.screen.TimelineScreen
+import com.example.kkubeok.screen.CountdownScreen
 
 //import database
 import androidx.lifecycle.lifecycleScope
@@ -64,6 +65,7 @@ fun KkubeokMain(db: AppDatabase, context:Context){
         composable("Alarm"){AlarmScreen(navController)}
         composable("Home"){ HomeScreen(navController, context)}
         composable("Timeline"){TimelineScreen(navController)}
+        composable("Countdown"){CountdownScreen(navController)}
     }
 }
 

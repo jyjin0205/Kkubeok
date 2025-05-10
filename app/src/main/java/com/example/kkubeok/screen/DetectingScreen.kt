@@ -50,13 +50,12 @@ fun DetectingScreen(navController: NavHostController?=null){
     var gravityVal by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
     var gyro by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
 
-    var totalTime by remember { mutableStateOf(0L) }
-    var currentTime by remember { mutableStateOf(0L) }
+    var totalTime by remember { mutableLongStateOf(0L) }
+    var currentTime by remember { mutableLongStateOf(0L) }
     var startTimestamp by remember { mutableStateOf<Long?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
     var timerJob by remember { mutableStateOf<Job?>(null) }
-    var isListening by remember { mutableStateOf(false) }
 
     val listener = remember {
         object : SensorEventListener {

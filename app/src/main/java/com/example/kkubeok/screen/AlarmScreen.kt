@@ -4,36 +4,30 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.kkubeok.BottomNavigationBar
 import com.example.kkubeok.ui.theme.KkubeokTheme
-import java.util.*
 
 @Composable
 fun AlarmScreen(navController: NavHostController? = null) {
-    var hour by remember { mutableIntStateOf(0) }
-    var minute by remember { mutableIntStateOf(0) }
-    var second by remember { mutableIntStateOf(0) }
+    var hour by remember {mutableIntStateOf(0)}
+    var minute by remember {mutableIntStateOf(0)}
+    var second by remember {mutableIntStateOf(0)}
 
     Scaffold(
         bottomBar = {
-            navController?.let {
-                BottomNavigationBar(navController = it)
-            }
+            navController?.let { BottomNavigationBar(navController = it) }
         }
     ) { paddingValues ->
         Column(
@@ -41,30 +35,25 @@ fun AlarmScreen(navController: NavHostController? = null) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Alarm",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.Start)
-            )
+            Text("Alarm", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
             Card(
-                modifier = Modifier
+                modifier=Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1EEF6)),
-                shape = RoundedCornerShape(24.dp)
-            ) {
+                colors=CardDefaults.cardColors(containerColor=Color(0xFFEAE6F2)),
+                shape=RoundedCornerShape(24.dp)
+            ){
                 Row(
-                    modifier = Modifier
+                    modifier=Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                        .padding(vertical=32.dp),
+                    horizontalArrangement=Arrangement.SpaceEvenly,
+                    verticalAlignment=Alignment.CenterVertically
+                ){
                     ScrollTimePicker(label = "Hour", maxValue = 23) { hour = it }
                     Text(":", fontSize = 24.sp, fontWeight = FontWeight.Bold)
                     ScrollTimePicker(label = "Minute", maxValue = 59) { minute = it }
@@ -74,12 +63,13 @@ fun AlarmScreen(navController: NavHostController? = null) {
             }
 
             Button(
-                onClick = { /* TODO: navigate to countdown with time */ },
+                onClick = {
+                    navController?.navigate("Countdown")
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                shape = RoundedCornerShape(24.dp)
+                    .padding(horizontal = 24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
             ) {
                 Text("Start", color = Color.White)
             }
@@ -100,17 +90,20 @@ fun ScrollTimePicker(label: String, maxValue: Int, onValueChange: (Int) -> Unit)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .height(100.dp)
+                .height(108.dp)
                 .width(48.dp),
             contentAlignment = Alignment.Center
         ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center
+                contentPadding=PaddingValues(vertical=36.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 items(count = maxValue + 1) { index ->
-                    val centerIndex = listState.firstVisibleItemIndex + 1
+                    val centerIndex by remember {
+                        derivedStateOf { listState.firstVisibleItemIndex }
+                    }
                     val isSelected = index == centerIndex
                     Text(
                         text = "%02d".format(index),
