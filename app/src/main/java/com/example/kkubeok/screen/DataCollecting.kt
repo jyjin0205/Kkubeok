@@ -222,9 +222,9 @@ fun DataCollecting(navController: NavController) {
 
     LaunchedEffect(isListening) {
         if (isListening) {
-            sensorManager.registerListener(sensorListener, accelerometersensor, SensorManager.SENSOR_DELAY_NORMAL)
-            sensorManager.registerListener(sensorListener, gravitysensor, SensorManager.SENSOR_DELAY_NORMAL)
-            sensorManager.registerListener(sensorListener, gyroscopesensor, SensorManager.SENSOR_DELAY_NORMAL)
+            sensorManager.registerListener(sensorListener, accelerometersensor, 10000)
+            sensorManager.registerListener(sensorListener, gravitysensor, 10000)
+            sensorManager.registerListener(sensorListener, gyroscopesensor, 10000)
 
         } else {
             sensorManager.unregisterListener(sensorListener)
