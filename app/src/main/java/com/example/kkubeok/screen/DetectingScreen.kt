@@ -308,7 +308,7 @@ fun saveDetectingCSV(
         val writer=BufferedWriter(FileWriter(file, true))
         writer.use{
             if(!file.exists()){
-              it.write("timestamp,x,y,z\n")
+              it.write("time_string,timestamp,x,y,z\n")
             }
             dataList.forEach{line->it.write("$line\n")}
         }
