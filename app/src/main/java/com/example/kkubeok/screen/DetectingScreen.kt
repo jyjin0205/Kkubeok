@@ -46,9 +46,14 @@ fun DetectingScreen(navController: NavHostController?=null){
     val gravity=remember{sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)}
     val gyroscope=remember{sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)}
 
-    var accel by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
+    var accelVal by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
     var gravityVal by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
-    var gyro by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
+    var gyroVal by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
+
+    /* For Data Storage */
+    var accelData=remember {mutableStateListOf<String>()}
+    var gravityData=remember {mutableStateListOf<String>()}
+    var gyroData=remember{mutableStateListOf<String>()}
 
     var totalTime by remember { mutableLongStateOf(0L) }
     var currentTime by remember { mutableLongStateOf(0L) }
@@ -60,12 +65,25 @@ fun DetectingScreen(navController: NavHostController?=null){
     val listener = remember {
         object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
-                event?.let {
-                    val (x, y, z) = it.values
-                    when (it.sensor.type) {
-                        Sensor.TYPE_ACCELEROMETER -> accel = Triple(x, y, z)
-                        Sensor.TYPE_GRAVITY -> gravityVal = Triple(x, y, z)
-                        Sensor.TYPE_GYROSCOPE -> gyro = Triple(x, y, z)
+                event?.let {evt->
+                    val (x, y, z) = evt.values
+                    val timestamp=System.currentTimeMillis()
+                    val line="$timestamp,$x,$y,$z"
+
+                    when(evt.sensor.type){
+                        Sensor.TYPE_ACCELEROMETER->{
+                            accelVal=Triple(x,y,z)
+                            accelData.add(line)
+                        }
+                        Sensor.TYPE_GRAVITY->{
+                            gravityVal=Triple(x,y,z)
+                            gravityData.add(line)
+                        }
+                        Sensor.TYPE_GYROSCOPE->{
+                            gyroVal=Triple(x,y,z)
+                            gyroData.add(line)
+                        }
+                        else ->{Log.d("SensorEvent", "Unhandled sensor type:${evt.sensor.type}")}
                     }
                 }
             }
@@ -164,7 +182,7 @@ fun DetectingScreen(navController: NavHostController?=null){
             Spacer(modifier=Modifier.height(8.dp))
 
             // Sensor Values
-            SensorTable(accel, gravityVal, gyro)
+            SensorTable(accelVal, gravityVal, gyroVal)
 
             Spacer(modifier=Modifier.height(8.dp))
 
@@ -191,6 +209,12 @@ fun DetectingScreen(navController: NavHostController?=null){
                         timerJob?.cancel()
                         totalTime+=currentTime
                         currentTime=0L
+                        // Store Data at external csv file
+                        val timestamp=startTimestamp?:System.currentTimeMillis()
+                        saveDetectingCSV(context, accelData, gravityData, gyroData, timestamp)
+                        accelData.clear()
+                        gravityData.clear()
+                        gyroData.clear()
                     }
                     isSensing=!isSensing
                 },
@@ -255,11 +279,29 @@ fun SensorTable(accel:Triple<Float,Float,Float>,gravity:Triple<Float,Float,Float
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun DetectingScreenPreview() {
-    val dummyNavController=rememberNavController()
-    KkubeokTheme {
-        DetectingScreen(navController=dummyNavController)
+fun saveDetectingCSV(
+    context: Context,
+    accelData: List<String>,
+    gravityData: List<String>,
+    gyroData: List<String>,
+    startTimestamp: Long
+){
+    val dateStr=SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(startTimestamp)
+    val filesAndData=listOf(
+        "detecting_accel_$dateStr.csv" to accelData,
+        "detecting_gravity_$dateStr.csv" to gravityData,
+        "detecting_gyro_$dateStr.csv" to gyroData
+    )
+
+    filesAndData.forEach{ (fileName, dataList) ->
+        if(dataList.isEmpty()) return@forEach
+        val file=File(context.getExternalFilesDir(null), fileName)
+        val writer=BufferedWriter(FileWriter(file, true))
+        writer.use{
+            if(!file.exists()){
+              it.write("timestamp,x,y,z\n")
+            }
+            dataList.forEach{line->it.write("$line\n")}
+        }
     }
 }
