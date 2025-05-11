@@ -37,4 +37,7 @@ interface SleepLogDao {
 
     @Query("SELECT * FROM sleep_log WHERE user_id = :userId")
     suspend fun getSleepLogsByUser(userId: String): List<SleepLog>
+
+    @Query("SELECT * FROM sleep_log WHERE user_id = :userId AND sleep_date = :sleepDate")
+    suspend fun getSleepLogsByUserAndDate(userId: String, sleepDate: String): SleepLog?
 }
