@@ -33,6 +33,7 @@ import com.example.kkubeok.database.DatabaseProvider
 import com.example.kkubeok.database.AppDatabase
 import com.example.kkubeok.database.Detected
 import com.example.kkubeok.database.TrainingData
+import com.example.kkubeok.database.UserInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
@@ -229,6 +230,7 @@ fun DataCollecting(navController: NavController) {
 
     var isListening by remember { mutableStateOf(false) }
 
+    /*
     LaunchedEffect(isListening) {
         if (isListening) {
             sensorManager.registerListener(sensorListener, accelerometersensor, 10000)
@@ -238,7 +240,7 @@ fun DataCollecting(navController: NavController) {
         } else {
             sensorManager.unregisterListener(sensorListener)
         }
-    }
+    }*/
 
     BackHandler {
         navController.popBackStack()
@@ -281,6 +283,10 @@ fun DataCollecting(navController: NavController) {
         if(!isListening)
         {
             Button(onClick = { isListening = true
+                sensorManager.registerListener(sensorListener, accelerometersensor, 10000)
+                sensorManager.registerListener(sensorListener, gravitysensor, 10000)
+                sensorManager.registerListener(sensorListener, gyroscopesensor, 10000)
+
                 startTimestamp = System.currentTimeMillis()
                 timerJob = coroutineScope.launch{
                     while (true) {
@@ -297,20 +303,19 @@ fun DataCollecting(navController: NavController) {
             }
         }
         else{
-            Button(onClick = { isListening = false },
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary)) {
-                Text("Pause")
-            }
-            Spacer(modifier = Modifier.height(10.dp))
             Button(onClick = { isListening = false
+                sensorManager.unregisterListener(sensorListener)
+
                 timerJob?.cancel()
                 timerJob = null
                 totalTime += currentTime
                 currentTime = 0
-                saveCSV(db, userId, context, selectedOptionText, accelData, gravityData, gyroData) },
+                startTimestamp?.let {
+                    saveCSV(db, userId, context, selectedOptionText, accelData, gravityData, gyroData, it)
+                }
+                accelData.clear()
+                gravityData.clear()
+                gyroData.clear() },
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
@@ -328,15 +333,31 @@ fun formatSeconds(seconds: Long): String {
     return "%02d:%02d".format(mins, secs)
 }
 
-fun saveCSV(db: AppDatabase, userId: String?, context: Context, selectedOptionText: String, accelData: List<String>,gravityData: List<String>, gyroData: List<String>) {
+fun saveCSV(db: AppDatabase, userId: String?, context: Context, selectedOptionText: String, accelData: List<String>,gravityData: List<String>, gyroData: List<String>
+, startTimestamp: Long) {
+    val saveStart = startTimestamp + 5000
+    val currentTime = System.currentTimeMillis()
+    val saveEnd = currentTime - 5000
+
+    val filterData = { dataList: List<String> ->
+        dataList.filter { line ->
+            val timestamp = line.split(",")[0].toLongOrNull() ?: return@filter false
+            timestamp in saveStart..saveEnd
+        }
+    }
 
     val filesAndData = listOf(
-        "${userId}_${selectedOptionText}_accel.csv" to accelData,
-        "${userId}_${selectedOptionText}_gravity.csv" to gravityData,
-        "${userId}_${selectedOptionText}_gyro.csv" to gyroData
+        "${userId}_${selectedOptionText}_accel.csv" to filterData(accelData),
+        "${userId}_${selectedOptionText}_gravity.csv" to filterData(gravityData),
+        "${userId}_${selectedOptionText}_gyro.csv" to filterData(gyroData)
     )
 
     filesAndData.forEach { (fileName, dataList) ->
+        if (dataList.isEmpty()) {
+            Log.d("SaveCSV", "Skip saving $fileName because dataList is empty.")
+            return@forEach
+        }
+
         val file = File(context.getExternalFilesDir(null), fileName)
         val fileExists = file.exists()
 
@@ -361,12 +382,16 @@ fun saveCSV(db: AppDatabase, userId: String?, context: Context, selectedOptionTe
 
 fun saveCSVInfoToDatabase(db: AppDatabase, userId: String?, path:String)
 {
+
     if(userId != null)
     {
         CoroutineScope(Dispatchers.IO).launch{
-            db.trainingDataDao().insert(
-                TrainingData(user_id = userId, file_path = path)
-            )
+            val existingFile = db.trainingDataDao().getTrainingDataByFile(path)
+            if(existingFile.isEmpty()) {
+                db.trainingDataDao().insert(
+                    TrainingData(user_id = userId, file_path = path)
+                )
+            }
         }
     }
 }
