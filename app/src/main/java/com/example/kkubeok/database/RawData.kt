@@ -30,7 +30,7 @@ interface RawDataDao {
     suspend fun insert(data: RawData)
 
     @Query("SELECT * FROM raw_data WHERE user_id = :userId")
-    suspend fun getRawDataByUser(userId: String): List<TrainingData>
+    suspend fun getRawDataByUser(userId: String): List<RawData>
 
     @Query("SELECT file_path FROM raw_data WHERE user_id = :userId")
     suspend fun getRawDataFilePathByUser(userId: String): List<String>
