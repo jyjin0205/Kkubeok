@@ -21,6 +21,7 @@ import androidx.room.Insert
 data class Detected(
     @PrimaryKey(autoGenerate = true) val detected_id: Int = 0,
     val user_id: String,
+    val calendar_date: String,
     val action_name: String?,
     val start_time: Long?,
     val end_time: Long?,

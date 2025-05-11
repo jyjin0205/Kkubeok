@@ -1,5 +1,6 @@
 package com.example.kkubeok.screen
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,11 +22,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.room.Room
 import androidx.navigation.NavHostController
 import com.example.kkubeok.BottomNavigationBar
 import com.example.kkubeok.ui.theme.KkubeokTheme
+import com.example.kkubeok.database.AppDatabase
+import com.example.kkubeok.database.Detected
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.lazy.itemsIndexed
+import com.example.kkubeok.database.DatabaseProvider
+import java.text.SimpleDateFormat
+import java.util.Locale
+import kotlinx.coroutines.launch
+
 
 data class MicrosleepSession(
     val date: String,
@@ -43,6 +53,45 @@ data class MicrosleepRecord(
 // --- Main Screen ---
 @Composable
 fun TimelineScreen(navController: NavHostController?=null) {
+    val context = LocalContext.current
+    val scope=rememberCoroutineScope()
+
+    /* Connecting with DataBase */
+    val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    val userId = prefs.getString("user_id",null)
+
+    val db=remember{
+        Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "kkubeok_database"
+        ).fallbackToDestructiveMigration().build()
+    }
+    val detectedDao=db.detectedDao()
+
+    LaunchedEffect(Unit){
+        /* Dummy Data Insert */
+        scope.launch{
+            val detected1=Detected(
+                user_id=userId!!,
+                calendar_date="May 4 (Sun)",
+                action_name="Dozing",
+                start_time=parseTime("14:17:00"),
+                end_time=parseTime("14:29:44"),
+                direction="None"
+            )
+            val detected2=Detected(
+                user_id=userId,
+                calendar_date="May 4 (Sun)",
+                action_name="Nap",
+                start_time=parseTime("15:45:00"),
+                end_time=parseTime("16:12:05"),
+                direction="Left"
+            )
+            detectedDao.insert(detected2)
+        }
+    }
+
     Scaffold(
         bottomBar={
             navController?.let{
@@ -233,6 +282,12 @@ fun MicrosleepRecordCard(record: MicrosleepRecord) {
             }
         }
     }
+}
+
+fun parseTime(timeStr: String): Long {
+    val sdf=SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    val date=sdf.parse(timeStr)?:return System.currentTimeMillis()
+    return date.time
 }
 
 // --- Preview ---
