@@ -36,6 +36,8 @@ import java.io.File
 import java.io.FileWriter
 
 import com.example.kkubeok.BottomNavigationBar
+import com.example.kkubeok.database.DatabaseProvider
+import java.util.Date
 
 @Composable
 fun DetectingScreen(navController: NavHostController?=null){
@@ -62,13 +64,19 @@ fun DetectingScreen(navController: NavHostController?=null){
     val coroutineScope = rememberCoroutineScope()
     var timerJob by remember { mutableStateOf<Job?>(null) }
 
+    /* Connecting with DataBase */
+    val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    val userId = prefs.getString("user_id",null)
+    val db = remember { DatabaseProvider.getDatabase(context) }
+
     val listener = remember {
         object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 event?.let {evt->
                     val (x, y, z) = evt.values
                     val timestamp=System.currentTimeMillis()
-                    val line="$timestamp,$x,$y,$z"
+                    val timeString=SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
+                    val line="$timeString,$timestamp,$x,$y,$z"
 
                     when(evt.sensor.type){
                         Sensor.TYPE_ACCELEROMETER->{
@@ -211,7 +219,7 @@ fun DetectingScreen(navController: NavHostController?=null){
                         currentTime=0L
                         // Store Data at external csv file
                         val timestamp=startTimestamp?:System.currentTimeMillis()
-                        saveDetectingCSV(context, accelData, gravityData, gyroData, timestamp)
+                        saveDetectingCSV(context, userId!!, accelData, gravityData, gyroData, timestamp)
                         accelData.clear()
                         gravityData.clear()
                         gyroData.clear()
@@ -281,16 +289,17 @@ fun SensorTable(accel:Triple<Float,Float,Float>,gravity:Triple<Float,Float,Float
 
 fun saveDetectingCSV(
     context: Context,
+    userId: String,
     accelData: List<String>,
     gravityData: List<String>,
     gyroData: List<String>,
     startTimestamp: Long
 ){
-    val dateStr=SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(startTimestamp)
+    val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(startTimestamp)
     val filesAndData=listOf(
-        "detecting_accel_$dateStr.csv" to accelData,
-        "detecting_gravity_$dateStr.csv" to gravityData,
-        "detecting_gyro_$dateStr.csv" to gyroData
+        "${userId}_accel_$dateStr.csv" to accelData,
+        "${userId}_gravity_$dateStr.csv" to gravityData,
+        "${userId}_gyro_$dateStr.csv" to gyroData
     )
 
     filesAndData.forEach{ (fileName, dataList) ->

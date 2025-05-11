@@ -196,7 +196,7 @@ fun DataCollecting(navController: NavController) {
     var timerJob by remember { mutableStateOf<Job?>(null) }
 
     val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-    var userId = prefs.getString("user_id",null)
+    val userId = prefs.getString("user_id",null)
     val db = remember { DatabaseProvider.getDatabase(context) }
 
     val sensorListener = remember {
