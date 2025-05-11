@@ -32,6 +32,9 @@ interface TrainingDataDao {
     @Query("SELECT * FROM training_data WHERE user_id = :userId")
     suspend fun getTrainingDataByUser(userId: String): List<TrainingData>
 
+    @Query("SELECT * FROM training_data WHERE file_id = :fileId")
+    suspend fun getTrainingDataByFile(fileId: String): List<TrainingData>
+
     @Query("SELECT file_path FROM training_data WHERE user_id = :userId")
     suspend fun getTraingDataFilePathByUser(userId: String): List<String>
 }
