@@ -26,6 +26,8 @@ import kotlinx.coroutines.withContext
 import com.example.kkubeok.database.DatabaseProvider
 import com.example.kkubeok.database.AppDatabase
 import com.example.kkubeok.database.SleepLog
+import com.example.kkubeok.database.Meal
+
 import com.example.kkubeok.BottomNavigationBar
 
 import androidx.compose.material.icons.filled.Close
@@ -45,22 +47,56 @@ fun getCurrentDate(): String {
 }
 
 fun getYesterDaySleepTime(): Pair<Long, Long>{
-    val currentTime = System.currentTimeMillis()
     val calendar = Calendar.getInstance()
-    calendar.timeInMillis = currentTime
 
-    calendar.add(Calendar.DAY_OF_YEAR, -1)
-    calendar.set(Calendar.HOUR_OF_DAY, 23)
-    calendar.set(Calendar.MINUTE, 0)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-    val yesterday11pm = calendar.timeInMillis
+    val yesterday11pm = calendar.apply {
+        timeInMillis = System.currentTimeMillis()
+        add(Calendar.DAY_OF_YEAR, -1)
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
-    calendar.add(Calendar.DAY_OF_YEAR, 1)
-    calendar.set(Calendar.HOUR_OF_DAY, 7)
-    val today7am = calendar.timeInMillis
+    val today7am = Calendar.getInstance().apply {
+        timeInMillis = System.currentTimeMillis()
+        set(Calendar.HOUR_OF_DAY, 7)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
     return Pair(yesterday11pm, today7am)
+}
+
+fun getTodayMealTime(mealTime: String): Long{
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val mealCalendar = Calendar.getInstance()
+
+    mealCalendar.time = timeFormat.parse(mealTime)!!
+    val today = Calendar.getInstance()
+    mealCalendar.set(today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH))
+
+    return mealCalendar.timeInMillis
+}
+
+fun convertMillsString(mills: Long) : String{
+    val millisCalendar = Calendar.getInstance()
+    val millisTime = millisCalendar.apply{
+        timeInMillis = mills
+    }
+
+    val hour = millisCalendar.get(Calendar.HOUR)
+    val minute = millisCalendar.get(Calendar.MINUTE)
+    val amPm = millisCalendar.get(Calendar.AM_PM)
+
+    val displayHour = if (hour == 0) 12 else hour
+
+    val minuteStr = minute.toString().padStart(2, '0')
+
+    val amPmStr = if (amPm == Calendar.AM) "AM" else "PM"
+
+    return "$displayHour:$minuteStr $amPmStr"
 }
 
 fun getMillisSleepTime(startTime: String, endTime:String) : Pair<Long, Long>{
@@ -91,11 +127,13 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
     val userId = prefs.getString("user_id",null)
     val db = remember { DatabaseProvider.getDatabase(context) }
     var userSleepLog by remember { mutableStateOf<SleepLog?>(null) }
+    var userMeal by remember { mutableStateOf(listOf<Meal>()) }
+    var showDialog by remember { mutableStateOf(false)}
+
 
     val currentDate = getCurrentDate().toString()
 
-    // 스레드를 분리해야 했었다
-    LaunchedEffect(Unit) {
+    LaunchedEffect(Unit, showDialog) {
         if (userId != null) {
             val sleepLog = withContext(Dispatchers.IO) {
                 db.sleepLogDao().getSleepLogsByUserAndDate(userId, currentDate)
@@ -122,11 +160,19 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                     db.sleepLogDao().insert(newSleepLog)
                 }
             }
+
+            val mealLog = withContext(Dispatchers.IO) {
+                db.mealDao().getMealsByUserAndDate(userId, currentDate)
+            }
+
+            if(mealLog.isNotEmpty()){
+                withContext(Dispatchers.Main) {
+                    userMeal = mealLog
+                }
+            }
         }
     }
 
-
-    var showDialog by remember { mutableStateOf(false)}
     if(showDialog)
     {
         EditAllDialog(onDismiss = {showDialog = false},
@@ -141,6 +187,21 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                             sleep_end = end
                         )
                         db.sleepLogDao().insert(newSleepLog)
+                    }
+                }
+            },
+
+            onMealTimeSelected = { mealType, mealTime ->
+                if(userId!=null)
+                {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val newMeal = Meal(
+                            user_id = userId,
+                            meal_date = currentDate,
+                            meal_type = mealType,
+                            meal_time = mealTime
+                        )
+                        db.mealDao().insert(newMeal)
                     }
                 }
             }
@@ -230,9 +291,37 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                     .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                MealCard(time = "10:00 am")
-                MealCard(time = "01:00 pm")
-                MealCard(time = "05:00 pm")
+                val breakfastMeal = userMeal.find{it.meal_type == "Breakfast"}
+                val lunchMeal = userMeal.find{it.meal_type == "Lunch"}
+                val dinnerMeal = userMeal.find{it.meal_type == "Dinner"}
+
+                if(breakfastMeal != null){
+                    val time = breakfastMeal.meal_time
+                    if(time!=null)
+                        MealCard(time = convertMillsString(time))
+                }
+                else
+                {
+                    MealCard(time = "")
+                }
+                if(lunchMeal != null){
+                    val time = lunchMeal.meal_time
+                    if(time!=null)
+                        MealCard(time = convertMillsString(time))
+                }
+                else
+                {
+                    MealCard(time = "")
+                }
+                if(dinnerMeal != null){
+                    val time = dinnerMeal.meal_time
+                    if(time!=null)
+                        MealCard(time = convertMillsString(time))
+                }
+                else
+                {
+                    MealCard(time = "")
+                }
             }
         }
     }
@@ -327,7 +416,9 @@ fun MealCard(time: String) {
 @Composable
 fun EditAllDialog(
     onDismiss: () -> Unit,
-    onSleepTimeSelected: (Long, Long) -> Unit
+    onSleepTimeSelected: (Long, Long) -> Unit,
+    onMealTimeSelected: (String, Long) -> Unit
+
 ){
     var currentScreen by remember { mutableStateOf("menu") }
 
@@ -335,7 +426,8 @@ fun EditAllDialog(
         "menu" -> {
             EditButtonWithDialog(
                 onDismiss = onDismiss,
-                onNightSleepClick = { currentScreen = "sleep" }
+                onNightSleepClick = { currentScreen = "sleep" },
+                onMealClick = {currentScreen = "meal"}
             )
         }
 
@@ -348,13 +440,24 @@ fun EditAllDialog(
                 onDismiss = onDismiss
             )
         }
+
+        "meal" -> {
+            MealPicker(
+                onValidMealSelected = {mealType, mealTime ->
+                    onMealTimeSelected(mealType, mealTime)
+                    onDismiss()
+                },
+                onDismiss = onDismiss
+            )
+        }
     }
 }
 
 @Composable
 fun EditButtonWithDialog(
     onDismiss: () -> Unit,
-    onNightSleepClick: () -> Unit
+    onNightSleepClick: () -> Unit,
+    onMealClick: () -> Unit
 ){
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -387,7 +490,7 @@ fun EditButtonWithDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = { /* Meal 버튼 로직 */ },
+                    onClick = onMealClick,
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Text("Meal")
@@ -499,6 +602,73 @@ fun SleepTimePicker(
     }
 }
 
+@Composable
+fun MealPicker(
+    onValidMealSelected: (mealType: String, mealTime: Long ) -> Unit,
+    onDismiss: () -> Unit
+)
+{
+    val mealType = listOf("Breakfast","Lunch","Dinner")
+    val hours = (0..23).map { it.toString().padStart(2, '0') }
+    val minutes = listOf("00", "15", "30", "45")
+
+    var selectedMeal by remember { mutableStateOf("Breakfast") }
+    var selectedHour by remember { mutableStateOf("08") }
+    var selectedMinute by remember { mutableStateOf("00") }
+    var errorText by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss){
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ){
+            Column(
+                modifier = Modifier
+                    .background(Color.White)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ){
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Text("식사 시간 설정", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("식사 종류 선택")
+                DropdownSelector("식사", mealType, selectedMeal) { selectedMeal = it }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("식사 시간 선택")
+                Row(horizontalArrangement = Arrangement.Center) {
+                    DropdownSelector("Hour", hours, selectedHour) { selectedHour = it }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    DropdownSelector("Minute", minutes, selectedMinute) { selectedMinute = it }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (errorText.isNotEmpty()) {
+                    Text(errorText, color = Color.Red)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Button(onClick = {
+                    val timeStr = "$selectedHour:$selectedMinute"
+                    val millis = getTodayMealTime(timeStr)
+                    onValidMealSelected(selectedMeal, millis)
+                }) {
+                    Text("Confirm")
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun DropdownSelector(label: String, options: List<String>, selected: String, onSelectedChange: (String) -> Unit) {

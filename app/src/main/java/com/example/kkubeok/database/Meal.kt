@@ -6,9 +6,13 @@ import androidx.room.ForeignKey
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Insert
+import androidx.room.Index
+import androidx.room.OnConflictStrategy
 
 @Entity(
     tableName = "meal",
+    primaryKeys = ["user_id", "meal_type", "meal_date"],
+    indices = [Index(value = ["user_id", "meal_type", "meal_date"], unique = true)],
     foreignKeys = [
         ForeignKey(
             entity = UserInfo::class,
@@ -19,17 +23,20 @@ import androidx.room.Insert
     ]
 )
 data class Meal(
-    @PrimaryKey(autoGenerate = true) val meal_id: Int = 0,
     val user_id: String,
-    val meal_type: String?,
+    val meal_type: String,
+    val meal_date: String,
     val meal_time: Long?
 )
 
 @Dao
 interface MealDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(meal: Meal)
 
     @Query("SELECT * FROM meal WHERE user_id = :userId")
     suspend fun getMealsByUser(userId: String): List<Meal>
+
+    @Query("SELECT * FROM meal WHERE user_id = :userId AND meal_date = :mealDate")
+    suspend fun getMealsByUserAndDate(userId: String, mealDate: String): List<Meal>
 }
