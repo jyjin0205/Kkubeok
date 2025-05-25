@@ -114,7 +114,7 @@ fun getMillisSleepTime(startTime: String, endTime:String) : Pair<Long, Long>{
     // Slept before 24:00
     if(startCalendar.get(Calendar.HOUR_OF_DAY) >= 12)
     {
-        startCalendar.set(Calendar.DAY_OF_YEAR, -1)
+        startCalendar.add(Calendar.DAY_OF_YEAR, -1)
     }
 
     return Pair(startCalendar.timeInMillis, endCalendar.timeInMillis)
