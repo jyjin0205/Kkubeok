@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 
 import com.example.kkubeok.screen.DataCollecting
 import com.example.kkubeok.screen.DetectingScreen
+import com.example.kkubeok.screen.AnalysisScreen
 import com.example.kkubeok.screen.AlarmScreen
 import com.example.kkubeok.screen.HomeScreen
 import com.example.kkubeok.screen.TimelineScreen
@@ -64,6 +65,7 @@ fun KkubeokMain(db: AppDatabase, context:Context){
         composable("Login") { LoginScreen(navController, db, context) }
         composable("Data Collecting") { DataCollecting(navController) }
         composable("Detecting"){DetectingScreen(navController = navController)}
+        composable("Analysis"){AnalysisScreen(navController)}
         composable("Alarm"){AlarmScreen(navController)}
         composable("Home"){ HomeScreen(navController, context)}
         composable("Timeline"){TimelineScreen(navController)}

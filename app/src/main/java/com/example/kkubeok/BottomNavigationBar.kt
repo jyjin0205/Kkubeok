@@ -33,7 +33,7 @@ fun BottomNavigationBar(navController: NavHostController){
         NavigationBarItem(
             icon={ Icon(Icons.Default.BarChart, contentDescription="Analysis") },
             selected=false,
-            onClick={/* TODO: Go to Analysis*/}
+            onClick={navController.navigate("Analysis")}
         )
         NavigationBarItem(
             icon={ Icon(Icons.Default.Alarm, contentDescription="Alarm") },
