@@ -23,6 +23,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import kotlinx.coroutines.launch
 import androidx.room.Room
 import androidx.navigation.NavHostController
 import com.example.kkubeok.BottomNavigationBar
@@ -35,6 +38,7 @@ import com.example.kkubeok.database.DatabaseProvider
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Date
+import java.util.Calendar
 import kotlinx.coroutines.launch
 
 
@@ -71,78 +75,35 @@ fun TimelineScreen(navController: NavHostController?=null) {
     val detectedDao=db.detectedDao()
     var detectedData by remember {mutableStateOf(listOf<Detected>())}
 
+    /* Load Date */
+    val dateList = remember { generateDateList() }
+    var selectedIndex by remember { mutableStateOf(dateList.lastIndex) }
+
+    val listState=rememberLazyListState() // date list
+
     LaunchedEffect(Unit){
         scope.launch{
             detectedData=detectedDao.getDetectedByUser(userId!!)
         }
     }
 
-"""
+    """
     LaunchedEffect(Unit){
         /* Dummy Data Insert */
         scope.launch{
             // data clear
-            detectedDao.deleteAll()
+            // detectedDao.deleteAll()
 
-            val detected1=Detected(
+            val detected=Detected(
                 user_id=userId!!,
-                calendar_date="May 23 (Fri)",
+                calendar_date="May 26 (Mon)",
                 action_name="Dozing",
-                start_time=parseTime("13:25:00"),
-                end_time=parseTime("13:42:02"),
+                start_time=parseTime("14:15:00"),
+                end_time=parseTime("14:31:11"),
                 direction="None"
             )
 
-            val detected2=Detected(
-                user_id=userId,
-                calendar_date="May 23 (Fri)",
-                action_name="Nap",
-                start_time=parseTime("12:15:00"),
-                end_time=parseTime("12:25:07"),
-                direction="Right"
-            )
-
-            val detected3=Detected(
-                user_id=userId,
-                calendar_date="May 24 (Sat)",
-                action_name="Dozing",
-                start_time=parseTime("14:25:00"),
-                end_time=parseTime("14:30:05"),
-                direction="None"
-            )
-
-            val detected4=Detected(
-                user_id=userId,
-                calendar_date="May 24 (Sat)",
-                action_name="Nap",
-                start_time=parseTime("10:12:00"),
-                end_time=parseTime("10:27:24"),
-                direction="Left"
-            )
-
-            val detected5=Detected(
-                user_id=userId,
-                calendar_date="May 25 (Sun)",
-                action_name="Nap",
-                start_time=parseTime("15:45:00"),
-                end_time=parseTime("16:12:05"),
-                direction="Left"
-            )
-
-            val detected6=Detected(
-                user_id=userId,
-                calendar_date="May 25 (Sun)",
-                action_name="Dozing",
-                start_time=parseTime("14:17:00"),
-                end_time=parseTime("14:29:44"),
-                direction="None"
-            )
-            detectedDao.insert(detected1)
-            detectedDao.insert(detected2)
-            detectedDao.insert(detected3)
-            detectedDao.insert(detected4)
-            detectedDao.insert(detected5)
-            detectedDao.insert(detected6)
+            detectedDao.insert(detected)
         }
     }
     """
@@ -187,8 +148,6 @@ fun TimelineScreen(navController: NavHostController?=null) {
                 )
             }
 
-            var selectedIndex by remember { mutableStateOf(0) }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -196,12 +155,18 @@ fun TimelineScreen(navController: NavHostController?=null) {
             ) {
                 TimelineDateHeader(
                     selectedDateIndex = selectedIndex,
-                    onDateSelected = { index -> selectedIndex = index }
+                    onDateSelected = { index ->
+                        selectedIndex = index
+                        scope.launch {
+                            listState.animateScrollToItem(sessionList.lastIndex - index) // 최신 날짜가 위에 오도록 정렬된 상태
+                        }
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 LazyColumn(
+                    state=listState,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(sessionList) { session ->
@@ -234,47 +199,41 @@ fun SessionCard(session: MicrosleepSession) {
     }
 }
 
+fun generateDateList(): List<String> {
+    val formatter = SimpleDateFormat("EEE d", Locale.US)
+    val startDate = Calendar.getInstance().apply {
+        set(2025, Calendar.MAY, 23)
+    }
+    val endDate = Calendar.getInstance() // Today
+
+    val dateList = mutableListOf<String>()
+    while (!startDate.after(endDate)) {
+        dateList.add(formatter.format(startDate.time))
+        startDate.add(Calendar.DATE, 1)
+    }
+    return dateList
+}
+
 @Composable
 fun TimelineDateHeader(
-    selectedDateIndex: Int = 1,
-    onDateSelected: (Int) -> Unit = {}
+    selectedDateIndex: Int,
+    onDateSelected: (Int) -> Unit
 ) {
-    val days = listOf(
-        "Sun" to "4", "Mon" to "5", "Tue" to "6", "Wed" to "7",
-        "Thu" to "8", "Fri" to "9", "Sat" to "10", "Sun" to "11", "Mon" to "12"
-    )
+    val days = remember { generateDateList() }
+    val todayIndex = days.lastIndex
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // 양 옆 화살표
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Previous",
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "Next",
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp)
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            itemsIndexed(days) { index, (day, date) ->
+            itemsIndexed(days) { index, date ->
                 val isSelected = index == selectedDateIndex
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -284,17 +243,9 @@ fun TimelineDateHeader(
                         .clickable { onDateSelected(index) }
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    Text(
-                        text = day,
-                        fontWeight = FontWeight.Medium,
-                        color = if (index == 0) Color.Gray else Color.Black,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = date,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
+                    val parts = date.split(" ")
+                    Text(parts[0], fontWeight = FontWeight.Medium)
+                    Text(parts[1], fontWeight = FontWeight.SemiBold)
                     if (isSelected) {
                         Box(
                             modifier = Modifier
