@@ -41,12 +41,13 @@ import java.util.Date
 
 @Composable
 fun DetectingScreen(navController: NavHostController?=null){
-    val context=LocalContext.current
-    val sensorManager=remember{context.getSystemService(Context.SENSOR_SERVICE)as SensorManager }
+    val context = LocalContext.current
+    val sensorManager =
+        remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
 
-    val accelerometer =remember{sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)}
-    val gravity=remember{sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)}
-    val gyroscope=remember{sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)}
+    val accelerometer = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
+    val gravity = remember { sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY) }
+    val gyroscope = remember { sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) }
 
     var accelVal by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
     var gravityVal by remember { mutableStateOf(Triple(0f, 0f, 0f)) }
@@ -110,7 +111,7 @@ fun DetectingScreen(navController: NavHostController?=null){
             modifier=Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal=24.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment=Alignment.CenterHorizontally,
             verticalArrangement=Arrangement.spacedBy(24.dp)
         ) {
@@ -146,7 +147,8 @@ fun DetectingScreen(navController: NavHostController?=null){
             ){
                 // Real World Current Time
                 Card(
-                    modifier=Modifier.weight(1f)
+                    modifier=Modifier
+                        .weight(1f)
                         .padding(4.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -170,7 +172,8 @@ fun DetectingScreen(navController: NavHostController?=null){
 
                 // Detecting Time Block
                 Card(
-                    modifier=Modifier.weight(1f)
+                    modifier=Modifier
+                        .weight(1f)
                         .padding(4.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -228,7 +231,7 @@ fun DetectingScreen(navController: NavHostController?=null){
                 },
                 modifier=Modifier
                     .fillMaxWidth()
-                    .padding(vertical=4.dp),
+                    .padding(vertical = 4.dp),
                 colors=ButtonDefaults.buttonColors(containerColor= Color.Black)
             )
             {

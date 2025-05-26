@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import com.example.kkubeok.database.DatabaseProvider
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.Date
 import kotlinx.coroutines.launch
 
 
@@ -68,29 +69,84 @@ fun TimelineScreen(navController: NavHostController?=null) {
         ).fallbackToDestructiveMigration().build()
     }
     val detectedDao=db.detectedDao()
+    var detectedData by remember {mutableStateOf(listOf<Detected>())}
 
+    LaunchedEffect(Unit){
+        scope.launch{
+            detectedData=detectedDao.getDetectedByUser(userId!!)
+        }
+    }
+
+"""
     LaunchedEffect(Unit){
         /* Dummy Data Insert */
         scope.launch{
+            // data clear
+            detectedDao.deleteAll()
+
             val detected1=Detected(
                 user_id=userId!!,
-                calendar_date="May 4 (Sun)",
+                calendar_date="May 23 (Fri)",
                 action_name="Dozing",
-                start_time=parseTime("14:17:00"),
-                end_time=parseTime("14:29:44"),
+                start_time=parseTime("13:25:00"),
+                end_time=parseTime("13:42:02"),
                 direction="None"
             )
+
             val detected2=Detected(
                 user_id=userId,
-                calendar_date="May 4 (Sun)",
+                calendar_date="May 23 (Fri)",
+                action_name="Nap",
+                start_time=parseTime("12:15:00"),
+                end_time=parseTime("12:25:07"),
+                direction="Right"
+            )
+
+            val detected3=Detected(
+                user_id=userId,
+                calendar_date="May 24 (Sat)",
+                action_name="Dozing",
+                start_time=parseTime("14:25:00"),
+                end_time=parseTime("14:30:05"),
+                direction="None"
+            )
+
+            val detected4=Detected(
+                user_id=userId,
+                calendar_date="May 24 (Sat)",
+                action_name="Nap",
+                start_time=parseTime("10:12:00"),
+                end_time=parseTime("10:27:24"),
+                direction="Left"
+            )
+
+            val detected5=Detected(
+                user_id=userId,
+                calendar_date="May 25 (Sun)",
                 action_name="Nap",
                 start_time=parseTime("15:45:00"),
                 end_time=parseTime("16:12:05"),
                 direction="Left"
             )
+
+            val detected6=Detected(
+                user_id=userId,
+                calendar_date="May 25 (Sun)",
+                action_name="Dozing",
+                start_time=parseTime("14:17:00"),
+                end_time=parseTime("14:29:44"),
+                direction="None"
+            )
+            detectedDao.insert(detected1)
             detectedDao.insert(detected2)
+            detectedDao.insert(detected3)
+            detectedDao.insert(detected4)
+            detectedDao.insert(detected5)
+            detectedDao.insert(detected6)
         }
     }
+    """
+
 
     Scaffold(
         bottomBar={
@@ -105,35 +161,33 @@ fun TimelineScreen(navController: NavHostController?=null) {
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ){
-            var selectedIndex by remember { mutableStateOf(0) }
+            val grouped = detectedData.groupBy { it.calendar_date }
+            val reversedGrouped=grouped.toSortedMap(compareByDescending {it}) // decreasing order
 
-            val sampleData = listOf(
-                MicrosleepSession(
-                    date = "May 4 (Sun)",
-                    totalTime = "39:49",
-                    records = listOf(
-                        MicrosleepRecord("\uD83D\uDE2A", "Dozing", "12:44", "02:17 PM"),
-                        MicrosleepRecord("\uD83D\uDE34", "Nap", "27:05", "03:45 PM")
+            val sessionList = reversedGrouped.map { (date, records) ->
+                val formattedRecords = records.map {
+                    val durationSec = ((it.end_time ?: 0L) - (it.start_time ?: 0L)) / 1000
+                    val minutes = durationSec / 60
+                    val seconds = durationSec % 60
+                    MicrosleepRecord(
+                        emoji = if (it.action_name == "Dozing") "😪" else "😴",
+                        label = it.action_name ?: "Unknown",
+                        duration = "%02d:%02d".format(minutes, seconds),
+                        time = formatTime(it.start_time ?: 0L)
                     )
-                ),
+                }
+
+                val totalSeconds = records.sumOf { ((it.end_time ?: 0L) - (it.start_time ?: 0L)) / 1000 }
+                val totalFormatted = "%02d:%02d".format(totalSeconds / 60, totalSeconds % 60)
+
                 MicrosleepSession(
-                    date = "May 3 (Sat)",
-                    totalTime = "20:29",
-                    records = listOf(
-                        MicrosleepRecord("\uD83D\uDE34", "Nap", "15:24", "10:12 AM"),
-                        MicrosleepRecord("\uD83D\uDE2A", "Dozing", "05:05", "02:25 PM")
-                    )
-                ),
-                MicrosleepSession(
-                    date = "May 2 (Fri)",
-                    totalTime = "27:09",
-                    records = listOf(
-                        MicrosleepRecord("\uD83D\uDE34", "Nap", "10:07", "12:15 PM"),
-                        MicrosleepRecord("\uD83D\uDE2A", "Dozing", "17:02", "01:25 PM")
-                    )
+                    date = date,
+                    totalTime = totalFormatted,
+                    records = formattedRecords
                 )
+            }
 
-            )
+            var selectedIndex by remember { mutableStateOf(0) }
 
             Column(
                 modifier = Modifier
@@ -150,14 +204,14 @@ fun TimelineScreen(navController: NavHostController?=null) {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(sampleData) { session ->
+                    items(sessionList) { session ->
                         SessionCard(session)
                     }
                 }
             }
+
         }
     }
-
 }
 
 // --- Timeline Session Card ---
@@ -288,6 +342,11 @@ fun parseTime(timeStr: String): Long {
     val sdf=SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     val date=sdf.parse(timeStr)?:return System.currentTimeMillis()
     return date.time
+}
+
+fun formatTime(timeMillis: Long): String {
+    val sdf=SimpleDateFormat("hh:mm a", Locale.getDefault())
+    return sdf.format(Date(timeMillis))
 }
 
 // --- Preview ---

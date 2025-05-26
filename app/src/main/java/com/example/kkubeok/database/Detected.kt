@@ -36,4 +36,7 @@ interface DetectedDao {
     @Query("SELECT * FROM detected WHERE user_id = :userId")
     suspend fun getDetectedByUser(userId: String): List<Detected>
 
+    @Query("DELETE FROM detected")
+    suspend fun deleteAll()
+
 }
