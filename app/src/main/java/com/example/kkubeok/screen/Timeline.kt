@@ -79,137 +79,15 @@ fun TimelineScreen(navController: NavHostController?=null) {
     val dateList = remember { generateDateList() }
     var selectedIndex by remember { mutableStateOf(dateList.lastIndex) }
 
-    val listState=rememberLazyListState() // date list
+    val listState=rememberLazyListState() // session card lazy column
+    val dateListState=rememberLazyListState() // date list on the top
 
     LaunchedEffect(Unit){
         scope.launch{
             detectedData=detectedDao.getDetectedByUser(userId!!)
         }
+        dateListState.scrollToItem(dateList.lastIndex)
     }
-
-"""
-    LaunchedEffect(Unit){
-        /* Dummy Data Insert */
-        scope.launch{
-            // data clear
-            detectedDao.deleteAll()
-
-            var formattedDate = formatCalendarDate(2025, Calendar.MAY, 20)
-
-            val detected10=Detected(
-                user_id=userId!!,
-                calendar_date=formattedDate,
-                action_name="Dozing",
-                start_time=buildTimestamp(2024, Calendar.MAY, 20,"09:09:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 20,"09:31:01"),
-                direction="None"
-            )
-
-            formattedDate = formatCalendarDate(2025, Calendar.MAY, 21)
-
-            val detected9=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Dozing",
-                start_time=buildTimestamp(2024, Calendar.MAY, 21,"14:15:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 21,"14:31:11"),
-                direction="None"
-            )
-
-            formattedDate = formatCalendarDate(2025, Calendar.MAY, 22)
-
-            val detected8=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Dozing",
-                start_time=buildTimestamp(2024, Calendar.MAY, 22,"14:15:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 22,"14:31:11"),
-                direction="None"
-            )
-
-            formattedDate = formatCalendarDate(2025, Calendar.MAY, 23)
-
-            val detected1=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Dozing",
-                start_time=buildTimestamp(2024, Calendar.MAY, 23,"13:25:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 23,"13:42:02"),
-                direction="None"
-            )
-
-            val detected2=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Nap",
-                start_time=buildTimestamp(2024, Calendar.MAY, 23,"12:15:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 23,"12:25:07"),
-                direction="Right"
-            )
-
-            formattedDate = formatCalendarDate(2025, Calendar.MAY, 24)
-
-            val detected3=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Dozing",
-                start_time=buildTimestamp(2024, Calendar.MAY, 24,"14:25:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 24,"14:30:05"),
-                direction="None"
-            )
-
-            val detected4=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Nap",
-                start_time=buildTimestamp(2024, Calendar.MAY, 24,"10:12:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 24,"10:27:24"),
-                direction="Left"
-            )
-
-            formattedDate = formatCalendarDate(2025, Calendar.MAY, 25)
-
-            val detected5=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Nap",
-                start_time=buildTimestamp(2024, Calendar.MAY, 25,"15:45:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 25,"16:12:05"),
-                direction="Left"
-            )
-
-            val detected6=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Dozing",
-                start_time=buildTimestamp(2024, Calendar.MAY, 25,"14:17:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 25,"14:29:44"),
-                direction="None"
-            )
-            formattedDate = formatCalendarDate(2025, Calendar.MAY, 26)
-            val detected7=Detected(
-                user_id=userId,
-                calendar_date=formattedDate,
-                action_name="Dozing",
-                start_time=buildTimestamp(2024, Calendar.MAY, 26,"14:15:00"),
-                end_time=buildTimestamp(2024, Calendar.MAY, 26,"14:31:11"),
-                direction="None"
-            )
-            detectedDao.insert(detected10)
-            detectedDao.insert(detected9)
-            detectedDao.insert(detected8)
-            detectedDao.insert(detected1)
-            detectedDao.insert(detected2)
-            detectedDao.insert(detected3)
-            detectedDao.insert(detected4)
-            detectedDao.insert(detected5)
-            detectedDao.insert(detected6)
-            detectedDao.insert(detected7)
-        }
-    }
-    """
-
-
 
     Scaffold(
         bottomBar={
@@ -244,7 +122,7 @@ fun TimelineScreen(navController: NavHostController?=null) {
                 val totalFormatted = "%02d:%02d".format(totalSeconds / 60, totalSeconds % 60)
 
                 MicrosleepSession(
-                    date = date,
+                    date = formatDateForDisplay(date),
                     totalTime = totalFormatted,
                     records = formattedRecords
                 )
@@ -260,9 +138,10 @@ fun TimelineScreen(navController: NavHostController?=null) {
                     onDateSelected = { index ->
                         selectedIndex = index
                         scope.launch {
-                            listState.animateScrollToItem(sessionList.lastIndex - index) // 최신 날짜가 위에 오도록 정렬된 상태
+                            dateListState.animateScrollToItem(sessionList.lastIndex - index) // 최신 날짜가 위에 오도록 정렬된 상태
                         }
-                    }
+                    },
+                    listState=dateListState
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -319,7 +198,8 @@ fun generateDateList(): List<String> {
 @Composable
 fun TimelineDateHeader(
     selectedDateIndex: Int,
-    onDateSelected: (Int) -> Unit
+    onDateSelected: (Int) -> Unit,
+    listState: LazyListState
 ) {
     val days = remember { generateDateList() }
     val todayIndex = days.lastIndex
@@ -332,6 +212,7 @@ fun TimelineDateHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         LazyRow(
+            state=listState,
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
@@ -402,15 +283,15 @@ fun formatTime(timeMillis: Long): String {
     return sdf.format(Date(timeMillis))
 }
 
-fun formatCalendarDate(year: Int, month: Int, day: Int): String {
-    val cal = Calendar.getInstance().apply {
-        set(year, month, day)
-    }
-    val formatter = SimpleDateFormat("MMM d (EEE)", Locale.US)
-    return formatter.format(cal.time)
-}
-
 fun buildTimestamp(year: Int, month: Int, day: Int, timeStr: String): Long {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     return dateFormat.parse(String.format("%04d-%02d-%02d %s", year, month + 1, day, timeStr))!!.time
 }
+
+fun formatDateForDisplay(rawDate: String): String {
+    val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val outputFormat = SimpleDateFormat("MMM d (EEE)", Locale.US)
+    val date = inputFormat.parse(rawDate)
+    return outputFormat.format(date!!)
+}
+
