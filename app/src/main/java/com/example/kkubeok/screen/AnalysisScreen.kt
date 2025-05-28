@@ -78,12 +78,20 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 }
 
                 // duration sum
-                val totalMillis = recentData.sumOf { (it.end_time ?: 0L) - (it.start_time ?: 0L) }
-                val avgMillis = totalMillis / 7
+                if (recentData.isNotEmpty()) {
+                    val totalMillis = recentData.sumOf { (it.end_time ?: 0L) - (it.start_time ?: 0L) }
+                    val avgMillis = totalMillis / 7
+                    val minutes = avgMillis / 1000 / 60
+                    val seconds = (avgMillis / 1000) % 60
+                    averageTime.value = "%02d:%02d".format(minutes, seconds)
+                } else {
+                    averageTime.value = "No recent data" // exception
+                }
 
-                val minutes = avgMillis / 1000 / 60
-                val seconds = (avgMillis / 1000) % 60
-                averageTime.value = "%02d:%02d".format(minutes, seconds)
+                println("Detected ${recentData.size} records in the past 7 days")
+                recentData.forEach {
+                    println("Start: ${it.start_time}, End: ${it.end_time}")
+                }
             }
         }
     }

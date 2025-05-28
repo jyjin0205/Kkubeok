@@ -105,7 +105,10 @@ fun TimelineScreen(navController: NavHostController?=null) {
             val grouped = detectedData.groupBy { it.calendar_date }
             val reversedGrouped=grouped.toSortedMap(compareByDescending {it}) // decreasing order
 
-            val sessionList = reversedGrouped.map { (date, records) ->
+            val fullDateList=generateFullDateList()
+
+            val sessionList = fullDateList.map { dateRaw ->
+                val records = grouped[dateRaw] ?: emptyList()
                 val formattedRecords = records.map {
                     val durationSec = ((it.end_time ?: 0L) - (it.start_time ?: 0L)) / 1000
                     val minutes = durationSec / 60
@@ -122,11 +125,11 @@ fun TimelineScreen(navController: NavHostController?=null) {
                 val totalFormatted = "%02d:%02d".format(totalSeconds / 60, totalSeconds % 60)
 
                 MicrosleepSession(
-                    date = formatDateForDisplay(date),
-                    totalTime = totalFormatted,
+                    date = formatDateForDisplay(dateRaw),
+                    totalTime = if (records.isEmpty()) "No Microsleep Day" else totalFormatted,
                     records = formattedRecords
                 )
-            }
+            }.reversed() // 최신 날짜가 위로 오도록
 
             Column(
                 modifier = Modifier
@@ -138,7 +141,8 @@ fun TimelineScreen(navController: NavHostController?=null) {
                     onDateSelected = { index ->
                         selectedIndex = index
                         scope.launch {
-                            dateListState.animateScrollToItem(sessionList.lastIndex - index) // 최신 날짜가 위에 오도록 정렬된 상태
+                            dateListState.animateScrollToItem(index) // card scroll
+                            listState.animateScrollToItem(sessionList.lastIndex - index) // recent date view
                         }
                     },
                     listState=dateListState
@@ -171,11 +175,15 @@ fun SessionCard(session: MicrosleepSession) {
     ) {
         Text(session.date, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.DarkGray)
         Spacer(modifier = Modifier.height(4.dp))
-        Text(session.totalTime, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Text(session.totalTime, fontSize = 28.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
-        session.records.forEach {
-            MicrosleepRecordCard(it)
-            Spacer(modifier = Modifier.height(8.dp))
+        if (session.records.isEmpty()) {
+            Text("No recorded microsleep on this day", fontSize = 14.sp, color = Color.Gray)
+        } else {
+            session.records.forEach {
+                MicrosleepRecordCard(it)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }
@@ -294,4 +302,20 @@ fun formatDateForDisplay(rawDate: String): String {
     val date = inputFormat.parse(rawDate)
     return outputFormat.format(date!!)
 }
+
+fun generateFullDateList(): List<String> {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val startDate = Calendar.getInstance().apply {
+        set(2025, Calendar.MAY, 20)
+    }
+    val endDate = Calendar.getInstance()
+
+    val dateList = mutableListOf<String>()
+    while (!startDate.after(endDate)) {
+        dateList.add(formatter.format(startDate.time))
+        startDate.add(Calendar.DATE, 1)
+    }
+    return dateList
+}
+
 
