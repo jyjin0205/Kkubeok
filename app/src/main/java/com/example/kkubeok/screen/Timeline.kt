@@ -89,6 +89,7 @@ fun TimelineScreen(navController: NavHostController?=null) {
         dateListState.scrollToItem(dateList.lastIndex)
     }
 
+
     Scaffold(
         bottomBar={
             navController?.let{
@@ -129,7 +130,7 @@ fun TimelineScreen(navController: NavHostController?=null) {
                     totalTime = if (records.isEmpty()) "No Microsleep Day" else totalFormatted,
                     records = formattedRecords
                 )
-            }.reversed() // 최신 날짜가 위로 오도록
+            }.reversed() // recent calendar ordering first
 
             Column(
                 modifier = Modifier

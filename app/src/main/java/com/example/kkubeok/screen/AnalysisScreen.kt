@@ -51,14 +51,17 @@ fun AnalysisScreen(navController: NavHostController?=null) {
 
     /* Load Date */
     val dateList = remember { generateDateList() }
-
     val averageTime = remember { mutableStateOf("00:00") }
+
+    /* Food Coma */
+    val foodComaEmojis=remember{mutableStateListOf<String>()}
 
     LaunchedEffect(Unit) {
         scope.launch {
             detectedData=detectedDao.getDetectedByUser(userId!!)
             if (userId != null) {
-                val allData = detectedDao.getDetectedByUser(userId)
+                val allDetected = detectedDao.getDetectedByUser(userId) // get the detected data
+                val allMeals=db.mealDao().getMealsByUser(userId) // get the meal data
 
                 // previous 7 days
                 val now = Calendar.getInstance()
@@ -68,11 +71,14 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 now.set(Calendar.MILLISECOND, 0)
                 val todayStartMillis = now.timeInMillis
                 val todayEndMillis = todayStartMillis + 24 * 60 * 60 * 1000 - 1
+                val weekAgoMillis = todayStartMillis - 6 * 24 * 60 * 60 * 1000 // 7 days ago
 
-                val weekAgoMillis = todayStartMillis - 6 * 24 * 60 * 60 * 1000
+                val dateFormatter=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = todayStartMillis
 
                 // recent 7 days filtering
-                val recentData = allData.filter { detected ->
+                val recentData = allDetected.filter { detected ->
                     val start = detected.start_time ?: 0
                     start in weekAgoMillis..todayEndMillis
                 }
@@ -88,10 +94,31 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                     averageTime.value = "No recent data" // exception
                 }
 
-                println("Detected ${recentData.size} records in the past 7 days")
-                recentData.forEach {
-                    println("Start: ${it.start_time}, End: ${it.end_time}")
+                /* Food Coma */
+                foodComaEmojis.clear()
+                for (i in 0 until 7) {
+                    val dateStr = dateFormatter.format(calendar.time) // 날짜 문자열
+                    val mealsOfDay = allMeals.filter { it.meal_date == dateStr }
+                    val detectedOfDay = allDetected.filter { it.calendar_date == dateStr }
+
+                    // find detected food coma microsleep
+                    var found = false
+                    for (meal in mealsOfDay) {
+                        val mealTime = meal.meal_time ?: continue
+                        for (detected in detectedOfDay) {
+                            val sleepStart = detected.start_time ?: continue
+                            if (kotlin.math.abs(sleepStart - mealTime) <= 2 * 60 * 60 * 1000) {
+                                found = true
+                                break
+                            }
+                        }
+                        if (found) break
+                    }
+                    foodComaEmojis.add(if (found) "😴" else "⚪")
+                    calendar.add(Calendar.DATE, -1) // 하루 전으로
                 }
+                foodComaEmojis.reverse()
+
             }
         }
     }
@@ -149,8 +176,8 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                     Text("Food Coma", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        repeat(7) { index ->
-                            Text(emojiForDay(index), fontSize = 24.sp)
+                        foodComaEmojis.forEach { emoji ->
+                            Text(emoji, fontSize = 24.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -195,13 +222,6 @@ fun AnalysisScreen(navController: NavHostController?=null) {
         }
     }
 
-}
-
-fun emojiForDay(index: Int): String {
-    return when (index) {
-        0, 5, 6 -> "😴" // sleep
-        else -> "⚪" // neutral
-    }
 }
 
 @Preview(showBackground = true)
