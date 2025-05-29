@@ -63,6 +63,8 @@ fun AnalysisScreen(navController: NavHostController?=null) {
     val foodComaEmojis=remember{mutableStateListOf<String>()}
     /* Day and Night Sleep Chart */
     val sleepStats = remember { mutableStateListOf<DailySleepStat>() }
+    /* Posture */
+    val postureText = remember { mutableStateOf("You usually sleep to the right.\nHow about the left next time?") }
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -162,6 +164,18 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                     calendar.add(Calendar.DATE, -1)
                 }
                 sleepStats.reverse()
+
+                /* Posture */
+                val rightCount = detectedData.count { it.direction.equals("Right", ignoreCase = true) }
+                val leftCount = detectedData.count { it.direction.equals("Left", ignoreCase = true) }
+
+                postureText.value = if (rightCount > leftCount) {
+                    "You usually sleep to the right.\nHow about the left next time?"
+                } else if (leftCount > rightCount) {
+                    "You usually sleep to the left.\nHow about the right next time?"
+                } else {
+                    "Your sleeping direction is balanced.\nYour body balance is good!"
+                }
             }
         }
     }
@@ -252,7 +266,7 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 ) {
                     Text("Posture", fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("You usually sleep to the right.\nHow about the left next time?", fontSize = 14.sp)
+                    Text(postureText.value, fontSize = 14.sp)
                 }
             }
         }

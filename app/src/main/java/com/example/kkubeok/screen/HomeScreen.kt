@@ -129,6 +129,7 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
     var userSleepLog by remember { mutableStateOf<SleepLog?>(null) }
     var userMeal by remember { mutableStateOf(listOf<Meal>()) }
     var showDialog by remember { mutableStateOf(false)}
+    var microsleepMinutes by remember {mutableStateOf(0L)}
 
 
     val currentDate = getCurrentDate().toString()
@@ -170,6 +171,21 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                     userMeal = mealLog
                 }
             }
+
+            val todayMicrosleeps = withContext(Dispatchers.IO) {
+                db.detectedDao().getDetectedByUser(userId).filter { it.calendar_date == currentDate }
+            }
+
+            val totalMicroDuration = todayMicrosleeps.sumOf {
+                val start = it.start_time ?: 0L
+                val end = it.end_time ?: 0L
+                (end - start) / 1000 / 60 // duration in minutes
+            }
+
+            withContext(Dispatchers.Main) {
+                microsleepMinutes = totalMicroDuration
+            }
+
         }
     }
 
@@ -258,10 +274,10 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                 value = userSleepLog
             )
 
-            SleepStatCard(
+            SleepStatCardMicrosleep(
                 icon = Icons.Filled.LightMode,
                 label = "Microsleep Time",
-                value = null
+                minutes = microsleepMinutes
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -368,6 +384,52 @@ fun SleepStatCard(icon: ImageVector, label: String, value: SleepLog?) {
                 horizontalAlignment = Alignment.Start,
             )
             {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = sleepDurationString,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SleepStatCardMicrosleep(icon: ImageVector, label: String, minutes: Long) {
+    val customColor = Color(255,200,0)
+    val hours = minutes / 60
+    val mins = minutes % 60
+    val sleepDurationString = "${hours} hr ${mins} min"
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .padding(vertical = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxHeight(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = customColor
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.Start,
+            ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.titleMedium
