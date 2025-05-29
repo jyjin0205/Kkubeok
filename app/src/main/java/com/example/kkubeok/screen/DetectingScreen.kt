@@ -37,6 +37,11 @@ import java.io.FileWriter
 
 import com.example.kkubeok.BottomNavigationBar
 import com.example.kkubeok.database.DatabaseProvider
+import com.example.kkubeok.database.Detected
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+
 import org.json.JSONObject
 import java.util.Date
 import kotlin.math.pow
@@ -75,6 +80,7 @@ fun DetectingScreen(navController: NavHostController?=null){
     val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
     val userId = prefs.getString("user_id",null)
     val db = remember { DatabaseProvider.getDatabase(context) }
+    val detectedDao = db.detectedDao()
 
     val listener = remember {
         object : SensorEventListener {
@@ -258,8 +264,52 @@ fun DetectingScreen(navController: NavHostController?=null){
                     }*/
 
                     val result = getLabelIntervals(predictions, setOf(0,1,2,3,4))
-                    for ((label, start, end) in result) {
-                        println("Label $label: $start ~ $end")
+
+                    val currentTime = System.currentTimeMillis()
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd",Locale.getDefault())
+                    val currentDate = Date(currentTime)
+                    val calendar = dateFormat.format(currentDate)
+
+                    val activityLabels = mapOf(
+                        0 to "Lean Back",
+                        1 to "Resting Head(Left)",
+                        2 to "Resting Head(Right)",
+                        3 to "Nodding Off",
+                        4 to "Others"
+                    )
+
+                    var direction: String? = null
+                    var action: String? = "Others"
+                    val detectedList = result.mapNotNull { (label, start, end) ->
+                        if (label == 4) return@mapNotNull null
+
+                        direction = when (label) {
+                            0 -> "Back"
+                            1 -> "Left"
+                            2 -> "Right"
+                            else -> null
+                        }
+
+                        action = when(label){
+                            0 -> "Nap"
+                            1 -> "Nap"
+                            2 -> "Nap"
+                            3 -> "Dozing"
+                            else -> ""
+                        }
+
+                        Detected(
+                            user_id = userId,
+                            calendar_date = calendar,
+                            action_name = action,
+                            start_time = start,
+                            end_time = end,
+                            direction = direction
+                        )
+                    }
+
+                    CoroutineScope(Dispatchers.IO).launch{
+                        detectedDao.insertAll(detectedList)
                     }
                     },
 
@@ -457,6 +507,9 @@ fun readSensorCSV(context: Context, fileName: String): List<SensorTriple> {
         }
     }
 
+    file.writeText("")
+    file.writeText("time_string,timestamp,x,y,z\n")
+
     return sensorList
 }
 
@@ -499,32 +552,40 @@ fun analysisSensorCSV(
 
 fun getLabelIntervals(predictions: List<Pair<Long, Int>>, targetLabels: Set<Int>): List<Triple<Int, Long, Long>> {
     val result = mutableListOf<Triple<Int, Long, Long>>()
+    val maxGapMillis = 60000L
 
     var currentLabel: Int? = null
     var startTime: Long? = null
     var endTime: Long? = null
+    var prevTimestamp: Long? = null
+
 
     for ((timestamp, label) in predictions) {
         if (label in targetLabels) {
-            if (label != currentLabel) {
-                if (currentLabel != null && startTime != null && endTime != null) {
+            if (label != currentLabel || (prevTimestamp != null && timestamp - prevTimestamp > maxGapMillis)) {
+                // 이전 구간 저장
+                if (currentLabel != null && startTime != null && endTime != null && endTime-startTime >= 5000) {
                     result.add(Triple(currentLabel, startTime, endTime))
                 }
+                // 새 구간 시작
                 currentLabel = label
                 startTime = timestamp
             }
             endTime = timestamp
+            prevTimestamp = timestamp
         } else {
-            if (currentLabel != null && startTime != null && endTime != null) {
+            if (currentLabel != null && startTime != null && endTime != null && endTime-startTime >= 5000) {
                 result.add(Triple(currentLabel, startTime, endTime))
-                currentLabel = null
-                startTime = null
-                endTime = null
             }
+            currentLabel = null
+            startTime = null
+            endTime = null
+            prevTimestamp = null
         }
     }
 
-    if (currentLabel != null && startTime != null && endTime != null) {
+    // 마지막 구간 저장
+    if (currentLabel != null && startTime != null && endTime != null && endTime-startTime >= 5000) {
         result.add(Triple(currentLabel, startTime, endTime))
     }
 

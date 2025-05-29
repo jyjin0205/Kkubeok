@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 
 @Entity(
     tableName = "detected",
@@ -30,8 +31,11 @@ data class Detected(
 
 @Dao
 interface DetectedDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(detected: Detected)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(detectedList: List<Detected>)
 
     @Query("SELECT * FROM detected WHERE user_id = :userId")
     suspend fun getDetectedByUser(userId: String): List<Detected>
