@@ -129,7 +129,7 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
     var userSleepLog by remember { mutableStateOf<SleepLog?>(null) }
     var userMeal by remember { mutableStateOf(listOf<Meal>()) }
     var showDialog by remember { mutableStateOf(false)}
-    var microsleepMinutes by remember {mutableStateOf(0L)}
+    var microsleepLog by remember {mutableLongStateOf(0L)}
 
 
     val currentDate = getCurrentDate().toString()
@@ -179,11 +179,11 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
             val totalMicroDuration = todayMicrosleeps.sumOf {
                 val start = it.start_time ?: 0L
                 val end = it.end_time ?: 0L
-                (end - start) / 1000 / 60 // duration in minutes
+                (end - start) // duration in ms
             }
 
             withContext(Dispatchers.Main) {
-                microsleepMinutes = totalMicroDuration
+                microsleepLog = totalMicroDuration
             }
 
         }
@@ -259,11 +259,23 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.align(Alignment.Center)
                 )
-                TextButton(onClick = { showDialog = true },
-                    modifier = Modifier.align(Alignment.CenterEnd)
+                Button(
+                    onClick = { showDialog = true },
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
-                    Text("EDIT")
+                    Text(
+                        text = "EDIT",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                    )
                 }
+
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -274,10 +286,15 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                 value = userSleepLog
             )
 
-            SleepStatCardMicrosleep(
+            SleepStatCard(
                 icon = Icons.Filled.LightMode,
                 label = "Microsleep Time",
-                minutes = microsleepMinutes
+                value = SleepLog(
+                    user_id=userId?: "uknown",
+                    sleep_date=currentDate,
+                    sleep_start=0L,
+                    sleep_end=microsleepLog // convert mins -> ms
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -294,8 +311,9 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
             {
                 Spacer(modifier = Modifier.height(8.dp).width(8.dp))
                 Text(
-                    text = "  Daily Routine",
-                    style = MaterialTheme.typography.titleLarge
+                    text = "Daily Routine",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Medium
                 )
             }
 
@@ -384,52 +402,6 @@ fun SleepStatCard(icon: ImageVector, label: String, value: SleepLog?) {
                 horizontalAlignment = Alignment.Start,
             )
             {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = sleepDurationString,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SleepStatCardMicrosleep(icon: ImageVector, label: String, minutes: Long) {
-    val customColor = Color(255,200,0)
-    val hours = minutes / 60
-    val mins = minutes % 60
-    val sleepDurationString = "${hours} hr ${mins} min"
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .padding(vertical = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxHeight(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = customColor
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.Start,
-            ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.titleMedium
@@ -553,14 +525,28 @@ fun EditButtonWithDialog(
 
                 Button(
                     onClick = onMealClick,
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.padding(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
                     Text("Meal")
                 }
 
                 Button(
                     onClick = onNightSleepClick,
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.padding(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(8.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
                     Text("NightSleep")
                 }
@@ -650,12 +636,20 @@ fun SleepTimePicker(
                         val (startMillis, endMillis) = getMillisSleepTime(startTime, endTime)
 
                         if (startMillis >= endMillis) {
-                            errorText = "잠든 시간은 일어난 시간보다 빨라야 해요."
+                            errorText = "The time you fall aslepp should be earlier than the time you wake up."
                         } else {
                             errorText = ""
                             onValidTimeSelected(startMillis, endMillis)
                         }
-                    }) {
+                    },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                        ) {
                         Text("Confirm")
                     }
                 }
@@ -698,15 +692,15 @@ fun MealPicker(
                     }
                 }
 
-                Text("식사 시간 설정", style = MaterialTheme.typography.titleMedium)
+                Text("Set the Meal Time", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text("식사 종류 선택")
-                DropdownSelector("식사", mealType, selectedMeal) { selectedMeal = it }
+                Text("Select the Meal type")
+                DropdownSelector("Meal Type", mealType, selectedMeal) { selectedMeal = it }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("식사 시간 선택")
+                Text("Select the Meal Time")
                 Row(horizontalArrangement = Arrangement.Center) {
                     DropdownSelector("Hour", hours, selectedHour) { selectedHour = it }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -720,13 +714,26 @@ fun MealPicker(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                Button(onClick = {
-                    val timeStr = "$selectedHour:$selectedMinute"
-                    val millis = getTodayMealTime(timeStr)
-                    onValidMealSelected(selectedMeal, millis)
-                }) {
-                    Text("Confirm")
+                Button(
+                    onClick = {
+                        val timeStr = "$selectedHour:$selectedMinute"
+                        val millis = getTodayMealTime(timeStr)
+                        onValidMealSelected(selectedMeal, millis)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Text(
+                        text = "Confirm",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
                 }
+
             }
         }
     }
@@ -739,13 +746,29 @@ fun DropdownSelector(label: String, options: List<String>, selected: String, onS
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label)
         Box {
-            Button(onClick = { expanded = true }) {
-                Text(selected)
+            Button(onClick = { expanded = true },
+                colors=ButtonDefaults.buttonColors(
+                    containerColor=Color.Black,
+                    contentColor=Color.White
+                ),
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                Text(
+                    text = selected,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(option) },
+                        text = {
+                            Text(
+                                text = option,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
                         onClick = {
                             onSelectedChange(option)
                             expanded = false
@@ -756,10 +779,3 @@ fun DropdownSelector(label: String, options: List<String>, selected: String, onS
         }
     }
 }
-
-/*
-@Preview(showBackground = true)
-@Composable
-fun PreviewHomeScreen() {
-    HomeScreen()
-}*/
