@@ -44,7 +44,7 @@ android {
 }
 
 dependencies {
-
+    implementation(files("libs/libsvm.jar"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
