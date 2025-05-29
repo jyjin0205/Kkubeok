@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
 import androidx.room.Room
@@ -29,6 +28,13 @@ import java.util.*
 import com.example.kkubeok.BottomNavigationBar
 import com.example.kkubeok.database.AppDatabase
 import com.example.kkubeok.database.Detected
+import com.example.kkubeok.database.SleepLog
+
+data class DailySleepStat(
+    val label: String,
+    val nightMin: Float, // night sleep
+    val microMin: Float // day microsleep
+)
 
 @Composable
 fun AnalysisScreen(navController: NavHostController?=null) {
@@ -55,6 +61,8 @@ fun AnalysisScreen(navController: NavHostController?=null) {
 
     /* Food Coma */
     val foodComaEmojis=remember{mutableStateListOf<String>()}
+    /* Day and Night Sleep Chart */
+    val sleepStats = remember { mutableStateListOf<DailySleepStat>() }
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -74,9 +82,10 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 val weekAgoMillis = todayStartMillis - 6 * 24 * 60 * 60 * 1000 // 7 days ago
 
                 val dateFormatter=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val calendar = Calendar.getInstance()
-                calendar.timeInMillis = todayStartMillis
+                val fcCalendar = Calendar.getInstance()
+                fcCalendar.timeInMillis = todayStartMillis
 
+                /* Average Microsleep Time */
                 // recent 7 days filtering
                 val recentData = allDetected.filter { detected ->
                     val start = detected.start_time ?: 0
@@ -97,7 +106,7 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 /* Food Coma */
                 foodComaEmojis.clear()
                 for (i in 0 until 7) {
-                    val dateStr = dateFormatter.format(calendar.time) // 날짜 문자열
+                    val dateStr = dateFormatter.format(fcCalendar.time) // date string
                     val mealsOfDay = allMeals.filter { it.meal_date == dateStr }
                     val detectedOfDay = allDetected.filter { it.calendar_date == dateStr }
 
@@ -115,10 +124,44 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                         if (found) break
                     }
                     foodComaEmojis.add(if (found) "😴" else "⚪")
-                    calendar.add(Calendar.DATE, -1) // 하루 전으로
+                    fcCalendar.add(Calendar.DATE, -1) // go to yesturday
                 }
                 foodComaEmojis.reverse()
 
+                /* Day and Night Sleep Chart */
+                val allSleepLogs = db.sleepLogDao().getSleepLogsByUser(userId)
+                val allMicrosleeps = detectedDao.getDetectedByUser(userId)
+
+                val calendar = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val displayFormatter = SimpleDateFormat("MM-dd", Locale.getDefault())
+
+                sleepStats.clear()
+                for (i in 0 until 7) {
+                    val day = calendar.time
+                    val dayStr = formatter.format(day)
+                    val label = displayFormatter.format(day)
+
+                    val nightDuration = allSleepLogs
+                        .filter { it.sleep_date == dayStr }
+                        .map { ((it.sleep_end ?: 0L) - (it.sleep_start ?: 0L)).toFloat() / 60000 }
+                        .sum()
+
+                    val microDuration = allMicrosleeps
+                        .filter { it.calendar_date == dayStr }
+                        .map { ((it.end_time ?: 0L) - (it.start_time ?: 0L)).toFloat() / 60000 }
+                        .sum()
+
+                    sleepStats.add(DailySleepStat(label, nightDuration, microDuration))
+                    calendar.add(Calendar.DATE, -1)
+                }
+                sleepStats.reverse()
             }
         }
     }
@@ -193,16 +236,9 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    Text("Night Sleep vs Day Sleep", fontWeight = FontWeight.SemiBold)
+                    Text("Night Sleep vs Microsleep", fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .background(Color.LightGray)
-                    ) {
-                        // Placeholder for future chart
-                    }
+                    SleepStackedBarChart(stats = sleepStats)
                 }
             }
 
@@ -224,10 +260,52 @@ fun AnalysisScreen(navController: NavHostController?=null) {
 
 }
 
-@Preview(showBackground = true)
 @Composable
-fun AnalysisScreenPreview() {
-    AnalysisScreen()
+fun SleepStackedBarChart(stats: List<DailySleepStat>) {
+    val maxHeight = (stats.maxOfOrNull { it.nightMin + it.microMin } ?: 1f)
+    val barWidth = 32.dp
+    val barSpacing = 16.dp
+    val chartHeight=140.dp
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(chartHeight),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.Bottom
+    ) {
+        stats.forEach { stat ->
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier=Modifier
+                        .height(chartHeight-32.dp) // keep space
+                        .width(barWidth),
+                    contentAlignment = Alignment.BottomCenter
+                ){
+                    Column(
+                        modifier = Modifier.fillMaxHeight(),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(fraction = stat.microMin / maxHeight)
+                                .background(Color(0xFFF2C075))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(fraction = stat.nightMin / maxHeight)
+                                .background(Color(0xFF2A2771))
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(stat.label, fontSize = 12.sp)
+            }
+        }
+    }
 }
+
 
 
