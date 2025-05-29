@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavHostController
 import androidx.room.Room
 import kotlinx.coroutines.launch
@@ -250,7 +251,10 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    Text("Night Sleep vs Microsleep", fontWeight = FontWeight.SemiBold)
+                    Text("Night Sleep vs Microsleep",
+                        fontWeight = FontWeight.SemiBold,
+                        modifier=Modifier.align(Alignment.CenterHorizontally)
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     SleepStackedBarChart(stats = sleepStats)
                 }
@@ -262,11 +266,19 @@ fun AnalysisScreen(navController: NavHostController?=null) {
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp) ,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Posture", fontWeight = FontWeight.SemiBold)
+                    Text("Posture",
+                        fontWeight = FontWeight.SemiBold,
+                        modifier=Modifier.align(Alignment.CenterHorizontally)
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(postureText.value, fontSize = 14.sp)
+                    Text(postureText.value,
+                        fontSize = 14.sp,
+                        textAlign= TextAlign.Center,
+                        modifier=Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
