@@ -308,11 +308,12 @@ fun DetectingScreen(navController: NavHostController?=null){
                         )
                     }
 
+
                     CoroutineScope(Dispatchers.IO).launch{
                         detectedDao.insertAll(detectedList)
                     }
-                    },
 
+                    },
                 modifier=Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
@@ -406,7 +407,8 @@ data class SensorTriple(val timestamp: Long, val x: Float, val y: Float, val z: 
 
 fun loadNormalizationParams(context: Context, userId: String): Pair<List<Float>, List<Float>> {
     return try {
-        val fileName = "${userId}_norm_params.json"
+        //val fileName = "${userId}_norm_params.json"
+        val fileName = "${userId}_norm_params_with_direction.json"
         val jsonString = context.assets.open(fileName).bufferedReader().use { it.readText() }
         val jsonObject = JSONObject(jsonString)
 
@@ -476,7 +478,9 @@ fun predict(model: svm_model, features: List<Float>): Int {
 
 fun loadSvmModelFromAssets(context: Context, userId: String): svm_model {
     val assetManager = context.assets
-    val inputStream = assetManager.open(userId+"_activity_model.model")
+
+    //val inputStream = assetManager.open(userId+"_activity_model.model")
+    val inputStream = assetManager.open(userId+"_activity_with_direction_model.model")
 
     val modelFile = File(context.cacheDir, "temp_svm_model.model")
     inputStream.use { input ->
@@ -530,6 +534,8 @@ fun analysisSensorCSV(
     val (xMin, xMax) = loadNormalizationParams(context, userId)
     val model = loadSvmModelFromAssets(context, userId)
 
+    val rotatedVectors: Map<Long, Triple<Double, Double, Double>> = analysisDirectionCSV(context, userId, gyro)
+
     val size = listOf(gravity.size, gyro.size, linear.size).minOrNull() ?: return emptyList()
 
     val predictions = mutableListOf<Pair<Long, Int>>()
@@ -540,7 +546,24 @@ fun analysisSensorCSV(
         val lWin = linear.subList(start, start + windowSize)
 
         val rawFeat = extractFeatures(gWin, rWin, lWin)
-        val normFeat = normalizeFeatures(rawFeat, xMin, xMax)
+
+        val timestampKey = gyro[start].timestamp
+
+        val currentVec = rotatedVectors[timestampKey]
+
+        val directionFeat: List<Float> = if (currentVec != null) {
+            listOf(
+                currentVec.first.toFloat(),
+                currentVec.second.toFloat(),
+                currentVec.third.toFloat()
+            )
+        } else {
+            listOf(0f, 0f, 0f)
+        }
+
+        val combinedFeat = rawFeat + directionFeat  // 총 길이 21짜리 List<Float>
+
+        val normFeat = normalizeFeatures(combinedFeat, xMin, xMax)
         val pred = predict(model, normFeat)
 
         val time = gWin.first().timestamp
@@ -650,57 +673,31 @@ data class Quaternion(val w: Double, val x: Double, val y: Double, val z: Double
 
 fun analysisDirectionCSV(
     context: Context,
-    userId: String
-){
-    val gyroList = mutableListOf<DataPoint>()
+    userId: String,
+    gyro: List<SensorTriple>
+): Map<Long, Triple<Double, Double, Double>>{
 
-    val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(System.currentTimeMillis())
-    val fileName = "${userId}_gyro_${dateStr}.csv"
-    val file = File(context.getExternalFilesDir(null),fileName)
+    if (gyro.size < 2) return emptyMap()
 
-    var startTimestamp: Long? = null
+    val rotatedVectors = mutableListOf<Pair<Long, Triple<Double,Double,Double>>>()
 
-    if(file.exists())
-    {
-        file.bufferedReader().useLines { lines ->
-            lines.drop(1)
-                .forEach{line ->
-                    val tokens = line.split(",")
-                    if (tokens.size >= 4) {
-                        val timestamp = tokens[0].trim().toLongOrNull()
-                        val x = tokens[1].trim().toFloatOrNull()
-                        val y = tokens[2].trim().toFloatOrNull()
-                        val z = tokens[3].trim().toFloatOrNull()
-                        if (timestamp != null && x != null && y != null && z != null) {
-                            if (startTimestamp == null) {
-                                startTimestamp = timestamp
-                            }
-
-                            // 시작 후 3초 지난 데이터만 추가
-                            if (timestamp - startTimestamp!! >= 3000) {
-                                gyroList.add(DataPoint(timestamp, x, y, z))
-                            }                        }
-                    }
-
-                }
-
-        }
-    }
 
     val dtList = mutableListOf<Float>()
+    val timestampList = mutableListOf<Long>()
     dtList.add(0f)
-    for (i in 1 until gyroList.size){
-        val dt = (gyroList[i].timestamp - gyroList[i - 1].timestamp) / 1000f // ms → s
+    for (i in 1 until gyro.size){
+        val dt = (gyro[i].timestamp - gyro[i - 1].timestamp) / 1000f // ms → s
+        timestampList.add(gyro[i-1].timestamp)
         dtList.add(dt)    }
 
     val quaternions = mutableListOf(Quaternion.identity())
     val startVector = Triple(0.0, 0.0, 1.0)
 
-    for (i in 1 until gyroList.size) {
+    for (i in 1 until gyro.size) {
         val omega = Triple(
-            gyroList[i].x.toDouble(),
-            gyroList[i].y.toDouble(),
-            gyroList[i].z.toDouble()
+            gyro[i].x.toDouble(),
+            gyro[i].y.toDouble(),
+            gyro[i].z.toDouble()
         )
         val dt = dtList[i]
 
@@ -719,12 +716,17 @@ fun analysisDirectionCSV(
 
     val directionCounts = IntArray(8) { 0 }
 
-    for (q in quaternions) {
-        val rotated = q.rotate(startVector)
-        val dir = determineDirection(rotated.first, rotated.second, rotated.third)
-        directionCounts[dir]++
+    for (i in 1 until quaternions.size) {
+        val rotated = quaternions[i].rotate(startVector)
+        val timestamp = timestampList[i-1]
+        //val dir = determineDirection(rotated.first, rotated.second, rotated.third)
+        //directionCounts[dir]++
+        rotatedVectors.add(Pair(timestamp,rotated))
     }
 
+    val rotatedMap: Map<Long, Triple<Double, Double, Double>> = rotatedVectors.toMap()
+
+    return rotatedMap
 }
 
 data class DataPoint(val timestamp: Long, val x: Float, val y: Float, val z: Float)

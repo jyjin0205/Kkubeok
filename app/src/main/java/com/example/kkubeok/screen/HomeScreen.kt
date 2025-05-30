@@ -3,7 +3,11 @@ package com.example.kkubeok.screen
 import android.content.Context
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -32,6 +36,7 @@ import com.example.kkubeok.BottomNavigationBar
 
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.example.kkubeok.R
 import com.example.kkubeok.database.TrainingData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +44,75 @@ import kotlinx.coroutines.Dispatchers
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Composable
+fun WeeklyScheduleCard(){
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp)
+            .padding(16.dp)
+    )
+    {
+        Card(
+            modifier = Modifier
+                .fillMaxSize(),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
+            ) {
+                // 1행: 요일 헤더
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    val days = listOf("Mon", "Tue", "Wed", "Thur", "Fri")
+                    days.forEach { day ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .border(1.dp, Color.Gray)
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = day, style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                }
+
+                // 2행 이후: 시간표 내용 (예시 4행)
+                val schedule = listOf(
+                    listOf("Math", "", "Physics", "", ""),
+                    listOf("", "Math", "", "", "Review"),
+                    listOf("UbiComp", "UbiComp", "", "", "Review"),
+                    listOf("", "A.I", "", "CS", "")
+                )
+
+                schedule.forEach { row ->
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        row.forEach { cell ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .border(1.dp, Color.LightGray)
+                                    .fillMaxHeight()
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = cell,
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (cell.isNotEmpty()) Color.Black else Color.Gray
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}
 fun getCurrentDate(): String {
     val currentTime = System.currentTimeMillis()
     val dateFormat = SimpleDateFormat("yyyy-MM-dd",Locale.getDefault())
@@ -309,12 +383,17 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             )
             {
-                Spacer(modifier = Modifier.height(8.dp).width(8.dp))
-                Text(
-                    text = "Daily Routine",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Medium
-                )
+                /*
+                Image(
+                    painter = painterResource(id = R.drawable.routine),
+                    contentDescription = "Daily Routine Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .padding(8.dp),
+                    contentScale = ContentScale.Fit
+                )*/
+                WeeklyScheduleCard()
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -507,6 +586,11 @@ fun EditButtonWithDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(modifier = Modifier.fillMaxWidth()){
+                    Text("Edit Options",
+                        modifier = Modifier.align(Alignment.Center),
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
+                    )
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.align(Alignment.TopEnd)
@@ -518,10 +602,7 @@ fun EditButtonWithDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text("Edit Options", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Button(
                     onClick = onMealClick,
@@ -534,7 +615,10 @@ fun EditButtonWithDialog(
                     shape = RoundedCornerShape(8.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
-                    Text("Meal")
+                    Text("Meal",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                        )
                 }
 
                 Button(
@@ -548,7 +632,9 @@ fun EditButtonWithDialog(
                 shape = RoundedCornerShape(8.dp),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
-                    Text("NightSleep")
+                    Text("NightSleep",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold)
                 }
             }
         }
