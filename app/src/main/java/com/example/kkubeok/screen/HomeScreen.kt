@@ -134,7 +134,7 @@ fun HomeScreen(navController: NavHostController?=null, context: Context) {
 
     val currentDate = getCurrentDate().toString()
 
-    LaunchedEffect(Unit, showDialog) {
+            LaunchedEffect(Unit, showDialog) {
         if (userId != null) {
             val sleepLog = withContext(Dispatchers.IO) {
                 db.sleepLogDao().getSleepLogsByUserAndDate(userId, currentDate)

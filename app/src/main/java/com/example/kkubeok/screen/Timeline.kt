@@ -89,7 +89,6 @@ fun TimelineScreen(navController: NavHostController?=null) {
         dateListState.scrollToItem(dateList.lastIndex)
     }
 
-
     Scaffold(
         bottomBar={
             navController?.let{

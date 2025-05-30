@@ -39,4 +39,7 @@ interface MealDao {
 
     @Query("SELECT * FROM meal WHERE user_id = :userId AND meal_date = :mealDate")
     suspend fun getMealsByUserAndDate(userId: String, mealDate: String): List<Meal>
+
+    @Query("DELETE FROM meal")
+    suspend fun deleteAll()
 }
